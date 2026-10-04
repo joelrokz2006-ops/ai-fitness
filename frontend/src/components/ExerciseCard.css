@@ -1,0 +1,68 @@
+/* src/components/ExerciseCard.css */
+
+.exercise-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 24px;
+  margin: 16px;
+  max-width: 320px;
+  border: 1px solid #eef2f5;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Mouse mela kondu pogumbohu card lift aagura effect */
+.exercise-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+/* Exercise Name Heading */
+.exercise-card h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: #1a202c;
+  font-size: 1.4rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+/* Target, Sets, Reps Paragraphs */
+.exercise-card p {
+  margin: 8px 0;
+  color: #4a5568;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Bold text color tuning */
+.exercise-card p strong {
+  color: #2d3748;
+  font-weight: 600;
+}
+
+/* Start Workout Button Stylings */
+.exercise-card button {
+  width: 100%;
+  background-color: #007bff; /* Fitness app blue color theme */
+  color: #ffffff;
+  border: none;
+  padding: 12px 20px;
+  margin-top: 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+/* Button hover trigger */
+.exercise-card button:hover {
+  background-color: #0056b3;
+}
+
+/* Button active/click trigger */
+.exercise-card button:active {
+  transform: scale(0.98);
+}

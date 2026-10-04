@@ -1,0 +1,141 @@
+/* client/src/components/Navbar.css */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+
+.navbar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 6%;
+  background: rgba(5, 8, 20, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+}
+
+/* LOGO STYLING */
+.navbar-logo {
+  font-family: 'Poppins', sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.navbar-logo span {
+  color: #38bdf8;
+  text-shadow: 0 0 15px rgba(56, 189, 248, 0.6);
+}
+
+.navbar-logo:hover {
+  transform: scale(1.02);
+}
+
+/* LINKS WRAPPER */
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+/* INDIVIDUAL NAV LINKS */
+.navbar-links a {
+  font-family: 'Poppins', sans-serif;
+  text-decoration: none;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  padding: 6px 0;
+}
+
+/* HOVER EFFECTS FOR LINKS */
+.navbar-links a:hover {
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+/* BOTTOM GLOWING LINE ON HOVER */
+.navbar-links a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: #38bdf8;
+  box-shadow: 0 0 10px #38bdf8;
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+}
+
+.navbar-links a:hover::after {
+  width: 80%;
+}
+
+/* 🚪 PREMIUM LOGOUT BUTTON STYLING */
+.logout-nav-btn {
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  color: #ffffff;
+  border: none;
+  padding: 8px 20px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-left: 10px;
+  display: inline-flex;
+  align-items: center;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.25);
+}
+
+.logout-nav-btn:hover {
+  background: linear-gradient(135deg, #f87171, #dc2626);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+}
+
+/* 🔑 LOGIN ROUTE BUTTON STYLING */
+.login-nav-link {
+  background: rgba(56, 189, 248, 0.08) !important;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 8px 22px !important;
+  border-radius: 8px;
+  color: #38bdf8 !important;
+  font-weight: 600 !important;
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.1);
+}
+
+.login-nav-link:hover {
+  background: #38bdf8 !important;
+  color: #030712 !important;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.4) !important;
+  transform: translateY(-2px);
+}
+
+.login-nav-link::after {
+  display: none !important; /* Login button-ku bottom line hover effect venam */
+}
+
+/* RESPONSIVE DESIGN */
+@media (max-width: 968px) {
+  .navbar-container {
+    padding: 20px 4%;
+  }
+  .navbar-links {
+    gap: 15px;
+  }
+  .navbar-links a {
+    font-size: 13px;
+  }
+}

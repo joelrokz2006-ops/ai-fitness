@@ -1,0 +1,161 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Poppins',sans-serif;
+}
+
+.login-page-container{
+
+    min-height:100vh;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    background:
+    radial-gradient(circle at top right,#0ea5e922,transparent 40%),
+    radial-gradient(circle at bottom left,#2563eb22,transparent 35%),
+    linear-gradient(135deg,#050816,#09111f,#0b1426);
+
+}
+
+.login-panel-box{
+
+    width:430px;
+
+    background:rgba(255,255,255,.05);
+
+    border:1px solid rgba(255,255,255,.08);
+
+    backdrop-filter:blur(18px);
+
+    border-radius:30px;
+
+    padding:45px;
+
+    color:white;
+
+    transition:.4s;
+
+}
+
+.login-panel-box:hover{
+
+    border-color:#38bdf8;
+
+    box-shadow:0 20px 45px rgba(56,189,248,.25);
+
+}
+
+.login-main-title{
+
+    text-align:center;
+
+    font-size:42px;
+
+    font-weight:800;
+
+    margin-bottom:15px;
+
+}
+
+.login-main-title span{
+
+    color:#38bdf8;
+
+}
+
+.login-subtitle-prompt{
+
+    text-align:center;
+
+    color:#b8c4d6;
+
+    margin-bottom:35px;
+
+    font-size:16px;
+
+}
+
+.login-panel-box input{
+
+    width:100%;
+
+    padding:15px !important;
+
+    background:#111827 !important;
+
+    color:white !important;
+
+    border:1px solid rgba(255,255,255,.12) !important;
+
+    border-radius:14px;
+
+    outline:none;
+
+    transition:.3s;
+
+}
+
+.login-panel-box input:focus{
+
+    border-color:#38bdf8 !important;
+
+    box-shadow:0 0 12px rgba(56,189,248,.35);
+
+}
+
+.login-panel-box button{
+
+    width:100%;
+
+    padding:16px !important;
+
+    border:none;
+
+    border-radius:50px;
+
+    background:linear-gradient(90deg,#2563eb,#38bdf8) !important;
+
+    color:white;
+
+    font-size:17px;
+
+    font-weight:700;
+
+    cursor:pointer;
+
+    transition:.4s;
+
+}
+
+.login-panel-box button:hover{
+
+    transform:translateY(-5px);
+
+    box-shadow:0 18px 35px rgba(56,189,248,.35);
+
+}
+
+@media(max-width:500px){
+
+.login-panel-box{
+
+width:92%;
+
+padding:30px;
+
+}
+
+.login-main-title{
+
+font-size:32px;
+
+}
+
+}

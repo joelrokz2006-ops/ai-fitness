@@ -1,0 +1,297 @@
+/* client/src/components/DietPlanCard.css */
+
+.diet-plan-card {
+  width: 100%;
+  max-width: 900px;
+  margin: 30px auto;
+  padding: 32px;
+  border-radius: 20px;
+  background: #131426;
+  border: 1px solid rgba(226, 224, 255, 0.08);
+  color: #f1f0fa;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.35);
+}
+
+.diet-plan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.diet-tags-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.diet-badge-pill {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(255, 107, 74, 0.16);
+  color: #ff6b4a;
+}
+
+.diet-pref-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.diet-pref-pill.veg {
+  background: rgba(56, 239, 125, 0.15);
+  color: #38ef7d;
+  border: 1px solid rgba(56, 239, 125, 0.3);
+}
+
+.diet-pref-pill.non-veg {
+  background: rgba(255, 107, 74, 0.15);
+  color: #ff8a5c;
+  border: 1px solid rgba(255, 107, 74, 0.3);
+}
+
+.diet-plan-header h2 {
+  margin: 0;
+  font-family: 'Manrope', 'Inter', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.diet-plan-header p {
+  margin-top: 6px;
+  color: #8d8ba8;
+  font-size: 14px;
+}
+
+.diet-goal-badge {
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: rgba(124, 123, 255, 0.12);
+  border: 1px solid rgba(124, 123, 255, 0.3);
+  color: #7c7bff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+/* CALORIE SUMMARY BOX */
+.calorie-summary-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 26px;
+  margin-bottom: 24px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(226, 224, 255, 0.06);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.calorie-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.calorie-sub {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8d8ba8;
+  font-weight: 700;
+}
+
+.calorie-number strong {
+  font-family: 'Manrope', sans-serif;
+  font-size: 38px;
+  font-weight: 800;
+  color: #ff6b4a;
+}
+
+.calorie-number span {
+  font-size: 16px;
+  color: #8d8ba8;
+  margin-left: 6px;
+}
+
+.bmr-chip {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(226, 224, 255, 0.08);
+  padding: 10px 16px;
+  border-radius: 12px;
+  text-align: right;
+}
+
+.bmr-chip span {
+  display: block;
+  font-size: 11px;
+  color: #8d8ba8;
+  text-transform: uppercase;
+}
+
+.bmr-chip strong {
+  font-family: 'Manrope', sans-serif;
+  font-size: 16px;
+  color: #f1f0fa;
+}
+
+/* MACRO RATIO PROGRESS */
+.macro-ratio-section {
+  margin-bottom: 24px;
+}
+
+.macro-ratio-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  margin-bottom: 10px;
+}
+
+.ratio-segment.protein { background: #7c7bff; }
+.ratio-segment.carbs { background: #ff6b4a; }
+.ratio-segment.fats { background: #38ef7d; }
+
+.macro-ratio-legend {
+  display: flex;
+  gap: 20px;
+  font-size: 12px;
+  color: #8d8ba8;
+  justify-content: flex-end;
+}
+
+.macro-ratio-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot-protein { background: #7c7bff; }
+.dot-carbs { background: #ff6b4a; }
+.dot-fats { background: #38ef7d; }
+
+/* MACRO GRID */
+.macro-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 26px;
+}
+
+.macro-card {
+  padding: 18px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(226, 224, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: transform 0.2s ease;
+}
+
+.macro-card:hover {
+  transform: translateY(-2px);
+}
+
+.macro-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.protein-card .macro-label { color: #7c7bff; }
+.carbs-card .macro-label { color: #ff6b4a; }
+.fats-card .macro-label { color: #38ef7d; }
+
+.macro-card strong {
+  font-family: 'Manrope', sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.macro-card small {
+  font-size: 11px;
+  color: #8d8ba8;
+}
+
+/* GENERATED SUMMARY */
+.generated-summary {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(226, 224, 255, 0.06);
+  border-radius: 14px;
+  padding: 18px 22px;
+}
+
+.generated-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.generated-header h4 {
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.badge-match {
+  font-size: 11px;
+  color: #38ef7d;
+  font-weight: 700;
+}
+
+.generated-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.gen-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gen-item span {
+  font-size: 11px;
+  color: #8d8ba8;
+  text-transform: uppercase;
+}
+
+.gen-item strong {
+  font-family: 'Manrope', sans-serif;
+  font-size: 15px;
+  color: #f1f0fa;
+  font-weight: 700;
+}
+
+@media (max-width: 700px) {
+  .macro-grid,
+  .generated-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

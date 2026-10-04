@@ -1,0 +1,269 @@
+/* BMI.css */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Poppins',sans-serif;
+}
+
+.bmi-page-container{
+
+    min-height:100vh;
+
+    background:
+    radial-gradient(circle at top right,#0ea5e922,transparent 40%),
+    radial-gradient(circle at bottom left,#2563eb22,transparent 35%),
+    linear-gradient(135deg,#050816,#09111f,#0b1426);
+
+    color:white;
+
+    padding:90px 20px;
+
+}
+
+.bmi-page-header{
+
+    text-align:center;
+
+    margin-bottom:60px;
+
+}
+
+.bmi-page-header h2{
+
+    font-size:50px;
+
+    font-weight:800;
+
+    margin-bottom:15px;
+
+}
+
+.bmi-page-header p{
+
+    color:#b8c4d6;
+
+    font-size:18px;
+
+    max-width:700px;
+
+    margin:auto;
+
+    line-height:1.8;
+
+}
+
+/* BMI FORM */
+
+.bmi-form{
+
+    max-width:700px;
+
+    margin:auto;
+
+    padding:45px;
+
+    background:rgba(255,255,255,.05);
+
+    border:1px solid rgba(255,255,255,.08);
+
+    border-radius:30px;
+
+    backdrop-filter:blur(18px);
+
+    box-shadow:0 20px 45px rgba(0,0,0,.25);
+
+}
+
+.bmi-form:hover{
+
+    border-color:#38bdf8;
+
+    box-shadow:0 20px 50px rgba(56,189,248,.25);
+
+}
+
+.bmi-form-group{
+
+    margin-bottom:25px;
+
+}
+
+.bmi-form-group label{
+
+    display:block;
+
+    margin-bottom:10px;
+
+    color:#7dd3fc;
+
+    font-weight:600;
+
+}
+
+.bmi-form-group input,
+
+.bmi-form-group select{
+
+    width:100%;
+
+    padding:15px;
+
+    border:none;
+
+    outline:none;
+
+    border-radius:14px;
+
+    background:#111827;
+
+    color:white;
+
+    border:1px solid rgba(255,255,255,.1);
+
+    transition:.3s;
+
+}
+
+.bmi-form-group input:focus,
+
+.bmi-form-group select:focus{
+
+    border-color:#38bdf8;
+
+    box-shadow:0 0 12px rgba(56,189,248,.35);
+
+}
+
+.bmi-submit-btn{
+
+    width:100%;
+
+    padding:18px;
+
+    border:none;
+
+    border-radius:50px;
+
+    background:linear-gradient(90deg,#2563eb,#38bdf8);
+
+    color:white;
+
+    font-size:18px;
+
+    font-weight:700;
+
+    cursor:pointer;
+
+    transition:.4s;
+
+    margin-top:15px;
+
+}
+
+.bmi-submit-btn:hover{
+
+    transform:translateY(-5px);
+
+    box-shadow:0 18px 35px rgba(56,189,248,.35);
+
+}
+
+.bmi-result{
+
+    margin-top:35px;
+
+    padding:25px;
+
+    border-radius:20px;
+
+    text-align:center;
+
+    background:rgba(56,189,248,.08);
+
+    border:1px solid rgba(56,189,248,.25);
+
+}
+
+.bmi-result h3{
+
+    font-size:28px;
+
+    margin-bottom:10px;
+
+}
+
+.bmi-result p{
+
+    color:#cbd5e1;
+
+    line-height:1.7;
+
+}
+
+.bmi-value{
+
+    font-size:42px;
+
+    font-weight:800;
+
+    color:#38bdf8;
+
+    margin:15px 0;
+
+}
+
+.normal{
+
+    color:#22c55e;
+
+}
+
+.underweight{
+
+    color:#facc15;
+
+}
+
+.overweight{
+
+    color:#fb923c;
+
+}
+
+.obese{
+
+    color:#ef4444;
+
+}
+
+@media(max-width:768px){
+
+.bmi-page-header h2{
+
+font-size:36px;
+
+}
+
+.bmi-page-header p{
+
+font-size:16px;
+
+}
+
+.bmi-form{
+
+padding:30px;
+
+}
+
+.bmi-value{
+
+font-size:32px;
+
+}
+
+}

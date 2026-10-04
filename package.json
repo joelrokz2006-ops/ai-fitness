@@ -1,0 +1,14 @@
+{
+  "name": "ai-fitness",
+  "version": "1.0.0",
+  "description": "AI Fitness MERN Application",
+  "scripts": {
+    "start": "node start-all.js",
+    "dev": "node start-all.js",
+    "backend": "cd backend && npm start",
+    "frontend": "cd frontend && npm run dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

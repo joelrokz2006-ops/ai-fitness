@@ -1,0 +1,214 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Poppins',sans-serif;
+}
+
+.bmi-form-box{
+
+    max-width:650px;
+
+    margin:auto;
+
+    background:rgba(255,255,255,.05);
+
+    border:1px solid rgba(255,255,255,.08);
+
+    backdrop-filter:blur(18px);
+
+    border-radius:30px;
+
+    padding:45px;
+
+    transition:.4s;
+
+}
+
+.bmi-form-box:hover{
+
+    border-color:#38bdf8;
+
+    box-shadow:0 20px 45px rgba(56,189,248,.25);
+
+}
+
+.form-header{
+
+    text-align:center;
+
+    font-size:38px;
+
+    font-weight:800;
+
+    margin-bottom:35px;
+
+    color:white;
+
+}
+
+.form-header span{
+
+    color:#38bdf8;
+
+}
+
+.form-group{
+
+    margin-bottom:25px;
+
+}
+
+.form-label{
+
+    display:block;
+
+    margin-bottom:10px;
+
+    color:#7dd3fc;
+
+    font-size:15px;
+
+    font-weight:600;
+
+}
+
+.form-input{
+
+    width:100%;
+
+    padding:16px;
+
+    border-radius:14px;
+
+    border:1px solid rgba(255,255,255,.1);
+
+    background:#111827;
+
+    color:white;
+
+    outline:none;
+
+    transition:.3s;
+
+}
+
+.form-input:focus{
+
+    border-color:#38bdf8;
+
+    box-shadow:0 0 12px rgba(56,189,248,.35);
+
+}
+
+.submit-btn{
+
+    width:100%;
+
+    margin-top:20px;
+
+    padding:18px;
+
+    border:none;
+
+    border-radius:50px;
+
+    background:linear-gradient(90deg,#2563eb,#38bdf8);
+
+    color:white;
+
+    font-size:17px;
+
+    font-weight:700;
+
+    cursor:pointer;
+
+    transition:.4s;
+
+}
+
+.submit-btn:hover{
+
+    transform:translateY(-5px);
+
+    box-shadow:0 18px 35px rgba(56,189,248,.35);
+
+}
+
+.bmi-result-panel{
+
+    margin-top:35px;
+
+    background:rgba(56,189,248,.08);
+
+    border:1px solid rgba(56,189,248,.25);
+
+    border-radius:20px;
+
+    padding:25px;
+
+    text-align:center;
+
+}
+
+.result-val{
+
+    font-size:48px;
+
+    font-weight:800;
+
+    color:#38bdf8;
+
+    margin-bottom:15px;
+
+}
+
+.result-status-badge{
+
+    display:inline-block;
+
+    padding:10px 25px;
+
+    border-radius:50px;
+
+    background:#22c55e22;
+
+    color:#4ade80;
+
+    font-weight:700;
+
+    margin-bottom:20px;
+
+}
+
+.result-advice-msg{
+
+    color:#cbd5e1;
+
+    line-height:1.8;
+
+}
+
+@media(max-width:768px){
+
+.bmi-form-box{
+
+padding:30px;
+
+}
+
+.form-header{
+
+font-size:30px;
+
+}
+
+.result-val{
+
+font-size:38px;
+
+}
+
+}
