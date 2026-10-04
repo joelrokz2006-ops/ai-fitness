@@ -52,6 +52,34 @@ npm start
 
 ---
 
+## 🌐 Deploy Backend on Render
+
+You can easily deploy the backend to [Render](https://render.com) using either the automatic blueprint or manual web service setup:
+
+### Method A: Using Render Blueprint (Automatic)
+1. Go to [Render Dashboard](https://dashboard.render.com/) and click **New +** -> **Blueprint**.
+2. Select your repository: `joelrokz2006-ops/ai-fitness`.
+3. Render will automatically detect [`render.yaml`](file:///home/joel/Documents/ai-fitness%20%283%29/ai-fitness/render.yaml) and configure the service.
+4. Set your `MONGO_URI` (from MongoDB Atlas) in the environment variables (or leave it to use the built-in database).
+5. Click **Apply**.
+
+### Method B: Manual Web Service Setup
+1. On Render, click **New +** -> **Web Service**.
+2. Connect your GitHub repository `joelrokz2006-ops/ai-fitness`.
+3. Configure settings:
+   - **Name**: `ai-fitness-backend`
+   - **Root Directory**: `backend`
+   - **Runtime**: `Node`
+   - **Build Command**: `npm install`
+   - **Start Command**: `node server.js`
+4. Under **Environment Variables**, add:
+   - `NODE_ENV`: `production`
+   - `JWT_SECRET`: `your_random_secret_jwt_key`
+   - `MONGO_URI`: `your_mongodb_atlas_connection_string`
+5. Click **Deploy Web Service**.
+
+---
+
 ## 🛠️ Tech Stack
 
 - **Frontend**: React 19, Vite, React Router 7, Axios, jsPDF, React Markdown
