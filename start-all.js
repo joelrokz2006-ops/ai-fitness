@@ -5,7 +5,7 @@ console.log("=================================");
 console.log("🚀 Starting AI Fitness System...");
 console.log("=================================");
 
-// 1. Launch Backend (Port 5001)
+// 1. Launch Backend (Port 5000)
 const backend = spawn("node", ["server.js"], {
   cwd: path.join(__dirname, "backend"),
   stdio: "inherit",

@@ -40,7 +40,7 @@ npm start
 ```
 
 * **Frontend**: [http://localhost:5174](http://localhost:5174)
-* **Backend API**: [http://localhost:5001](http://localhost:5001)
+* **Backend API**: [http://localhost:5000](http://localhost:5000)
 
 ---
 
