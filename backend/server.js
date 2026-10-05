@@ -16,7 +16,8 @@ const allowedOrigins = [
     "http://localhost:5174",
     "http://localhost:3000",
     "http://127.0.0.1:5173",
-    "http://127.0.0.1:5174"
+    "http://127.0.0.1:5174",
+    "https://ai-fitness-msmj.vercel.app"
 ];
 
 app.use(
@@ -24,7 +25,11 @@ app.use(
         origin: function (origin, callback) {
             // allow requests with no origin (like mobile apps, curl, postman)
             if (!origin) return callback(null, true);
-            if (allowedOrigins.indexOf(origin) !== -1 || origin.startsWith("http://localhost:")) {
+            if (
+                allowedOrigins.indexOf(origin) !== -1 ||
+                origin.startsWith("http://localhost:") ||
+                origin.endsWith(".vercel.app")
+            ) {
                 return callback(null, true);
             }
             return callback(null, true);
