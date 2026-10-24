@@ -1,0 +1,126 @@
+/* =========================================
+   BMI SUMMARY CARD (DIET SECTION)
+========================================= */
+
+.bmi-summary-card {
+  margin-bottom: 30px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.8) 100%);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  border-radius: 14px;
+  padding: 22px 26px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 16px rgba(0, 240, 255, 0.08);
+}
+
+.bmi-summary-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.bmi-left-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bmi-summary-label {
+  font-family: 'Oswald', sans-serif;
+  font-size: 11px;
+  color: #94a3b8;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.bmi-val-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.bmi-val-number {
+  font-family: 'Oswald', sans-serif;
+  font-size: 38px;
+  font-weight: 800;
+  color: #00f0ff;
+  line-height: 1;
+  text-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+}
+
+.bmi-cat-pill {
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid currentColor;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.bmi-metrics-row {
+  font-size: 12px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.bmi-metrics-row strong {
+  color: #f1f5f9;
+}
+
+.metrics-sep {
+  color: #475569;
+}
+
+.bmi-right-block {
+  flex: 1;
+  min-width: 260px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  padding-left: 24px;
+}
+
+.bmi-strategy-title {
+  color: #f8fafc;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.bmi-strategy-text {
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 10px 0;
+}
+
+.bmi-medical-note {
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.4;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 6px 10px;
+  border-radius: 6px;
+  border-left: 2px solid #38bdf8;
+}
+
+@media (max-width: 768px) {
+  .bmi-summary-card {
+    padding: 18px 16px;
+  }
+
+  .bmi-right-block {
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-left: 0;
+    padding-top: 16px;
+    width: 100%;
+  }
+
+  .bmi-val-number {
+    font-size: 32px;
+  }
+}

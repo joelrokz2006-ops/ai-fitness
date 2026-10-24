@@ -1,7 +1,7 @@
+const mongoose = require("mongoose");
 const Planner = require("../models/Planner");
 const {
   buildExerciseRoutine,
-  buildDietRoutine,
 } = require("../services/plannerRoutine");
 
 // =========================
@@ -40,19 +40,10 @@ const createPlanner = async (req, res) => {
     }
 
     // =========================
-    // CLEAR EXERCISE + DIET ROUTINE
+    // CLEAR EXERCISE ROUTINE (WORKOUTS ONLY)
     // =========================
 
     const exerciseRoutine = buildExerciseRoutine(goal);
-
-    const dietRoutine = buildDietRoutine({
-      age,
-      gender,
-      height,
-      weight,
-      goal,
-      activityLevel: req.body.activityLevel,
-    });
 
     let workoutPlan = {};
     let goalGuide = {};
@@ -371,11 +362,29 @@ const createPlanner = async (req, res) => {
         break;
     }
 
+    let tokenUserId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      try {
+        const jwt = require("jsonwebtoken");
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || "ai_fitness_secret");
+        tokenUserId = decoded.id || decoded._id;
+      } catch (e) {}
+    }
+
+    const validUserId =
+      tokenUserId ||
+      (req.user && (req.user.id || req.user._id)) ||
+      (req.body.userId && mongoose.Types.ObjectId.isValid(req.body.userId)
+        ? req.body.userId
+        : undefined);
+
     const planner = new Planner({
       ...req.body,
+      userId: validUserId,
 
       exerciseRoutine,
-      dietRoutine,
 
       workoutPlan,
       goalGuide,
@@ -411,7 +420,43 @@ const createPlanner = async (req, res) => {
 };
 
 // =========================
-// GET PLANNER
+// GET PLANNER FOR LOGGED-IN USER
+// =========================
+
+const getMyPlanner = async (req, res) => {
+  try {
+    const userId = req.user?.id || req.user?._id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const planner = await Planner.findOne({ userId }).sort({ createdAt: -1 });
+
+    if (!planner) {
+      return res.status(404).json({
+        success: false,
+        message: "Planner data not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: planner,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+// =========================
+// GET PLANNER BY USER ID (LEGACY/FALLBACK)
 // =========================
 
 const getPlanner = async (req, res) => {
@@ -441,5 +486,6 @@ const getPlanner = async (req, res) => {
 
 module.exports = {
   createPlanner,
+  getMyPlanner,
   getPlanner,
 };

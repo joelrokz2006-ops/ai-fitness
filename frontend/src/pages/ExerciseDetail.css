@@ -397,3 +397,65 @@ flex-direction:column;
 }
 
 }
+
+/* ========================= */
+/* EXERCISE VIDEO DEMONSTRATION */
+/* ========================= */
+
+.exercise-video-box {
+  margin-bottom: 25px;
+  background: #0a1122;
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+.video-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.video-box-header h3 {
+  font-size: 18px;
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.video-target-tag {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.exercise-video-player {
+  width: 100%;
+  border-radius: 12px;
+  max-height: 380px;
+  min-height: 240px;
+  object-fit: cover;
+  background: #000;
+  display: block;
+  outline: none;
+}
+
+.no-video-placeholder {
+  padding: 30px 20px;
+  text-align: center;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  font-size: 14px;
+}

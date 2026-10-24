@@ -1,7 +1,12 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 require("dotenv").config();
+if (!process.env.JWT_SECRET) {
+    process.env.JWT_SECRET = "ai_fitness_secret";
+}
 
 const app = express();
 
@@ -158,6 +163,8 @@ app.get("/", (req, res) => {
 let authRoutes;
 let plannerRoutes;
 let dietRoutes;
+let aiRoutes;
+let progressRoutes;
 
 // -----------------------------------------------------
 // AUTH ROUTE
@@ -290,6 +297,36 @@ if (typeof dietRoutes === "function") {
         "❌ /api/diet was NOT mounted"
     );
 
+}
+
+// AI
+try {
+    aiRoutes = require("./routes/aiRoutes");
+    console.log("🤖 AI Routes:", typeof aiRoutes);
+} catch (error) {
+    console.error("❌ Failed to load AI Routes:", error.message);
+}
+
+if (typeof aiRoutes === "function") {
+    app.use("/api/ai", aiRoutes);
+    console.log("✅ /api/ai mounted");
+} else {
+    console.error("❌ /api/ai was NOT mounted");
+}
+
+// PROGRESS
+try {
+    progressRoutes = require("./routes/ProgressRoutes");
+    console.log("📈 Progress Routes:", typeof progressRoutes);
+} catch (error) {
+    console.error("❌ Failed to load Progress Routes:", error.message);
+}
+
+if (typeof progressRoutes === "function") {
+    app.use("/api/progress", progressRoutes);
+    console.log("✅ /api/progress mounted");
+} else {
+    console.error("❌ /api/progress was NOT mounted");
 }
 
 // =====================================================

@@ -149,3 +149,198 @@ export const getMyDietPlan = async () => {
 
   return data;
 };
+
+/* ========================================
+   USER PROFILE API
+======================================== */
+
+export const getUserProfile = async () => {
+  const token = getToken();
+  if (!token) return null;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.user;
+  } catch (e) {
+    return null;
+  }
+};
+
+export const updateUserProfile = async (profileData) => {
+  const token = getToken();
+  if (!token) throw new Error("Session expired. Please log in again.");
+
+  const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(profileData),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to update profile");
+  }
+
+  // Update local user storage
+  if (data.user) {
+    localStorage.setItem("user", JSON.stringify(data.user));
+  }
+
+  return data.user;
+};
+
+/* ========================================
+   GYM PLANNER API
+======================================== */
+
+export const getMyPlanner = async () => {
+  const token = getToken();
+
+  // Try authenticated /my-plan endpoint first
+  if (token) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/planner/my-plan`, {
+        method: "GET",
+        headers: getAuthHeaders(),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          return data.data;
+        }
+      }
+    } catch (e) {
+      console.warn("Could not fetch planner via /my-plan:", e.message);
+    }
+  }
+
+  // Fallback to cached user ID endpoint
+  const cachedUser = localStorage.getItem("user");
+  let userId = null;
+  if (cachedUser) {
+    try {
+      const u = JSON.parse(cachedUser);
+      userId = u.id || u._id;
+    } catch (e) {}
+  }
+
+  if (userId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/planner/${userId}`, {
+        headers: getAuthHeaders(),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          return data.data;
+        }
+      }
+    } catch (e) {
+      console.warn("Could not fetch planner via userId:", e.message);
+    }
+  }
+
+  // Fallback to localStorage userPlanner if present
+  const localPlanner = localStorage.getItem("userPlanner");
+  if (localPlanner) {
+    try {
+      return JSON.parse(localPlanner);
+    } catch (e) {}
+  }
+
+  return null;
+};
+
+/* ========================================
+   DAILY PROGRESS TRACKING API
+======================================== */
+
+export const getProgress = async (date, dietPlanId = null, plannerId = null) => {
+  const token = getToken();
+  if (!token) {
+    // If not logged in, return null so local state can be used gracefully
+    return null;
+  }
+
+  let url = `${API_BASE_URL}/progress?date=${encodeURIComponent(date)}`;
+  if (dietPlanId) url += `&dietPlanId=${encodeURIComponent(dietPlanId)}`;
+  if (plannerId) url += `&plannerId=${encodeURIComponent(plannerId)}`;
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      clearAuthSession();
+      throw new Error("Session expired. Please log in again.");
+    }
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || "Failed to load daily progress");
+  }
+
+  const data = await response.json();
+  return data.data;
+};
+
+export const toggleProgress = async ({ date, type, itemId, completed, planId }) => {
+  const token = getToken();
+  if (!token) {
+    throw new Error("Session expired. Please log in again.");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/progress/toggle`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      date,
+      type,
+      itemId,
+      completed,
+      planId,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    if (response.status === 401) {
+      clearAuthSession();
+      throw new Error("Session expired. Please log in again.");
+    }
+    throw new Error(data.message || "Failed to update item status");
+  }
+
+  return data.data;
+};
+
+export const updateProgressWater = async ({ date, waterGlasses }) => {
+  const token = getToken();
+  if (!token) return null;
+
+  const response = await fetch(`${API_BASE_URL}/progress/water`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      date,
+      waterGlasses,
+    }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.message || "Failed to update water progress");
+  }
+
+  const data = await response.json();
+  return data.data;
+};

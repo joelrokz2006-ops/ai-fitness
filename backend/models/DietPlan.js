@@ -149,23 +149,34 @@ const dietPlanSchema = new mongoose.Schema(
     // User Goal
     goal: {
       type: String,
-
       enum: [
         "weight_loss",
         "weight_gain",
         "muscle_gain",
         "maintenance",
+        "Weight Loss",
+        "Weight Gain",
+        "Muscle Gain",
+        "Fat Loss",
+        "Strength",
+        "General Fitness",
       ],
-
       required: true,
     },
 
     // Food Preference
     foodPreference: {
       type: String,
-
-      enum: ["veg", "non-veg", "both"],
-
+      enum: [
+        "veg",
+        "non-veg",
+        "both",
+        "Vegetarian",
+        "Non-Vegetarian",
+        "Both",
+        "vegan",
+        "Vegan",
+      ],
       default: "both",
     },
 
@@ -175,16 +186,45 @@ const dietPlanSchema = new mongoose.Schema(
 
       gender: {
         type: String,
-        enum: ["male", "female", "other"],
+        enum: [
+          "male",
+          "female",
+          "transgender",
+          "other",
+          "Male",
+          "Female",
+          "Transgender",
+        ],
+        default: "male",
       },
 
       weight: Number,
 
       height: Number,
 
+      bmi: Number,
+
+      bmiCategory: String,
+
+      bmiStrategy: String,
+
       activityLevel: {
         type: String,
-        enum: ["low", "medium", "high"],
+        enum: [
+          "low",
+          "medium",
+          "high",
+          "sedentary",
+          "lightly_active",
+          "moderately_active",
+          "very_active",
+          "extra_active",
+          "Sedentary",
+          "Lightly Active",
+          "Moderately Active",
+          "Very Active",
+          "Extra Active",
+        ],
       },
     },
 

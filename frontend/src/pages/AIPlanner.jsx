@@ -1,8 +1,47 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "./AIPlanner.css";
 import { jsPDF } from "jspdf";
+import { getExerciseBySlug, slugify } from "../data/exercise";
+import { getAuthHeaders } from "../services/api";
+
+const extractMuscleGroups = (text) => {
+  if (!text) return [];
+  const tokens = String(text)
+    .replace(/\b(day|routine|workout|circuit|hiit|core|full body|upper body|lower body|strength|cardio|light cardio|walking|rest)\b/gi, "")
+    .split(/[+&,/]| and /i)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const knownList = [
+    { key: "chest", label: "Chest" },
+    { key: "back", label: "Back" },
+    { key: "shoulder", label: "Shoulders" },
+    { key: "tricep", label: "Triceps" },
+    { key: "bicep", label: "Biceps" },
+    { key: "arm", label: "Arms" },
+    { key: "leg", label: "Legs" },
+    { key: "ab", label: "Abs" },
+  ];
+
+  const results = [];
+  tokens.forEach((t) => {
+    const lower = t.toLowerCase();
+    for (const item of knownList) {
+      if (lower.includes(item.key)) {
+        if (!results.includes(item.label)) {
+          results.push(item.label);
+        }
+        break;
+      }
+    }
+  });
+
+  return results;
+};
 
 function AIPlanner() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     age: "",
     gender: "",
@@ -16,21 +55,30 @@ function AIPlanner() {
   const [plan, setPlan] = useState(null);
   const [ageError, setAgeError] = useState("");
 
-  // Load cached plan on mount if available
+  // Load user profile and cached plan on mount
   useEffect(() => {
+    const cachedUser = localStorage.getItem("user");
+    if (cachedUser) {
+      try {
+        const u = JSON.parse(cachedUser);
+        setFormData((prev) => ({
+          ...prev,
+          age: u.age ? String(u.age) : prev.age,
+          gender: u.gender || prev.gender,
+          height: u.height ? String(u.height) : prev.height,
+          weight: u.weight ? String(u.weight) : prev.weight,
+          goal: u.goal || prev.goal,
+        }));
+      } catch (e) {}
+    }
+
     const cachedPlan = localStorage.getItem("userPlanner");
     if (cachedPlan) {
       try {
         const parsed = JSON.parse(cachedPlan);
-
-        // Older cached plans have no clear exercise / diet routine
-        // Remove them so the user always gets the complete plan
-        if (parsed && (!parsed.exerciseRoutine || !parsed.dietRoutine)) {
-          localStorage.removeItem("userPlanner");
-          return;
+        if (parsed && parsed.exerciseRoutine) {
+          setPlan(parsed);
         }
-
-        setPlan(parsed);
       } catch (e) {
         console.error("Error reading cached planner:", e);
       }
@@ -73,9 +121,9 @@ function AIPlanner() {
     // Only users above 17 (18+) can use the Gym Planner
     // =========================
 
-    if (Number(age) < 18) {
+    if (Number(age) < 18 || Number(age) > 80) {
       setAgeError(
-        "Sorry, Gym Planner is only for users above 17 years old (18+)."
+        "Sorry, Gym Planner is only for users between 18 and 80 years old."
       );
       return;
     }
@@ -101,9 +149,7 @@ function AIPlanner() {
         "/api/planner",
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: getAuthHeaders(),
 
           body: JSON.stringify({
             userId: currentUserId,
@@ -300,90 +346,6 @@ function AIPlanner() {
 
         y += 3;
       });
-
-      y += 5;
-    }
-
-    // =========================
-    // CLEAR DIET ROUTINE
-    // =========================
-
-    if (plan.dietRoutine) {
-      checkPageBreak(20);
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-
-      doc.text("Diet Routine", 14, y);
-
-      y += 7;
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-
-      const targets = plan.dietRoutine.dailyTargets;
-
-      if (targets) {
-        const targetText = `Daily: ${targets.calories} kcal | Protein: ${targets.protein}g | Carbs: ${targets.carbs}g | Fats: ${targets.fats}g | Water: ${targets.water}`;
-
-        const splitTargets = doc.splitTextToSize(targetText, 180);
-
-        doc.text(splitTargets, 14, y);
-
-        y += splitTargets.length * 6 + 3;
-      }
-
-      plan.dietRoutine.meals?.forEach((meal) => {
-        checkPageBreak(20);
-
-        doc.setFont("helvetica", "bold");
-
-        doc.text(`${meal.name} (${meal.time})`, 14, y);
-
-        y += 6;
-
-        doc.setFont("helvetica", "normal");
-
-        const macros = `${meal.calories} kcal | P ${meal.protein}g | C ${meal.carbs}g | F ${meal.fats}g`;
-
-        doc.text(macros, 14, y);
-
-        y += 6;
-
-        meal.items?.forEach((item) => {
-          checkPageBreak();
-
-          const text = doc.splitTextToSize(`   - ${item}`, 180);
-
-          doc.text(text, 14, y);
-
-          y += text.length * 5;
-        });
-
-        y += 3;
-      });
-
-      if (plan.dietRoutine.rules?.length > 0) {
-        checkPageBreak(15);
-
-        doc.setFont("helvetica", "bold");
-
-        doc.text("Diet Rules", 14, y);
-
-        y += 6;
-
-        doc.setFont("helvetica", "normal");
-
-        plan.dietRoutine.rules.forEach((rule) => {
-          checkPageBreak();
-
-          const text = doc.splitTextToSize(`   - ${rule}`, 180);
-
-          doc.text(text, 14, y);
-
-          y += text.length * 5;
-        });
-      }
 
       y += 5;
     }
@@ -659,6 +621,8 @@ function AIPlanner() {
 
                 <option>Female</option>
 
+                <option>Transgender</option>
+
               </select>
 
             </div>
@@ -800,15 +764,37 @@ function AIPlanner() {
 
                 <div className="workout-plan">
 
-                  {Object.entries(plan.workoutPlan).map(
-                    ([day, workout]) => (
-
-                      <p key={day}>
-                        <strong>{day}:</strong> {workout}
-                      </p>
-
-                    )
-                  )}
+                  {Object.entries(plan.workoutPlan).map(([day, workout]) => {
+                    const muscles = extractMuscleGroups(workout);
+                    return (
+                      <div key={day} className="workout-plan-row">
+                        <div>
+                          <strong>{day}:</strong> <span>{workout}</span>
+                        </div>
+                        {muscles.length > 0 && (
+                          <div className="workout-row-tags">
+                            {muscles.map((m) => (
+                              <button
+                                key={m}
+                                type="button"
+                                className="mini-muscle-tag"
+                                onClick={() =>
+                                  navigate(
+                                    `/exercises?muscle=${encodeURIComponent(
+                                      m.toLowerCase()
+                                    )}`
+                                  )
+                                }
+                                title={`View ${m} Exercises in Exercises Library`}
+                              >
+                                {m} ↗
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
 
                 </div>
 
@@ -816,7 +802,7 @@ function AIPlanner() {
 
               <hr />
 
-              {/* CLEAR EXERCISE ROUTINE */}
+              {/* CLEAR EXERCISE ROUTINE (CONNECTS TO EXERCISES & VIDEOS) */}
 
               <h3>💪 Exercise Routine (Sets + Reps)</h3>
 
@@ -824,46 +810,145 @@ function AIPlanner() {
 
                 <div className="exercise-routine">
 
-                  {plan.exerciseRoutine.map((workoutDay) => (
+                  {plan.exerciseRoutine.map((workoutDay) => {
+                    const dayMuscles = extractMuscleGroups(workoutDay.focus);
+                    const hasExercises = workoutDay.exercises?.length > 0;
 
-                    <div
-                      className="exercise-day"
-                      key={workoutDay.day}
-                    >
+                    return (
+                      <div className="exercise-day" key={workoutDay.day}>
 
-                      <div className="exercise-day-head">
+                        <div className="exercise-day-head">
 
-                        <strong>{workoutDay.day}</strong>
+                          <div>
+                            <strong>{workoutDay.day}</strong>
+                            <span style={{ marginLeft: "10px", color: "#aab2c0" }}>
+                              {workoutDay.focus}
+                            </span>
+                          </div>
 
-                        <span>{workoutDay.focus}</span>
+                          {dayMuscles.length > 0 && (
+                            <div className="planner-muscle-group-links">
+                              {dayMuscles.map((m) => (
+                                <button
+                                  key={m}
+                                  type="button"
+                                  className="planner-muscle-link-btn"
+                                  onClick={() =>
+                                    navigate(
+                                      `/exercises?muscle=${encodeURIComponent(
+                                        m.toLowerCase()
+                                      )}`
+                                    )
+                                  }
+                                  title={`Explore ${m} Exercises in Library`}
+                                >
+                                  {m} Exercises ↗
+                                </button>
+                              ))}
+                            </div>
+                          )}
 
-                      </div>
+                        </div>
 
-                      <ul>
+                        {hasExercises ? (
+                          <div className="planner-exercises-list">
 
-                        {workoutDay.exercises?.map(
-                          (exercise, index) => (
+                            {workoutDay.exercises.map((exercise, index) => {
+                              const resolved = getExerciseBySlug(
+                                exercise.slug || exercise.name
+                              );
+                              const exerciseSlug =
+                                resolved?.slug || slugify(exercise.name);
+                              const exerciseMuscle =
+                                exercise.muscle ||
+                                resolved?.category ||
+                                resolved?.target ||
+                                workoutDay.focus;
 
-                            <li key={index}>
+                              return (
+                                <div
+                                  className="planner-exercise-card"
+                                  key={index}
+                                  onClick={() =>
+                                    navigate(`/exercises/${exerciseSlug}`)
+                                  }
+                                  style={{ cursor: "pointer" }}
+                                  title={`Open ${exercise.name} in Exercise Details & Video`}
+                                >
 
-                              <span className="exercise-name">
-                                {exercise.name}
-                              </span>
+                                  <div className="planner-exercise-top">
+                                    <div>
+                                      <h4 className="planner-exercise-title">
+                                        {exercise.name}{" "}
+                                        <span className="open-detail-arrow">
+                                          ↗
+                                        </span>
+                                      </h4>
+                                      <button
+                                        type="button"
+                                        className="planner-exercise-muscle"
+                                        style={{
+                                          background: "none",
+                                          border: "none",
+                                          padding: 0,
+                                          cursor: "pointer",
+                                          textAlign: "left",
+                                        }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigate(
+                                            `/exercises?muscle=${encodeURIComponent(
+                                              (
+                                                resolved?.category ||
+                                                exerciseMuscle
+                                              ).toLowerCase()
+                                            )}`
+                                          );
+                                        }}
+                                        title={`Filter exercises by ${exerciseMuscle}`}
+                                      >
+                                        {exerciseMuscle} ↗
+                                      </button>
+                                    </div>
+                                    <span className="planner-exercise-badge">
+                                      {exercise.sets} Sets × {exercise.reps}
+                                    </span>
+                                  </div>
 
-                              <span className="exercise-sets">
-                                {exercise.sets} × {exercise.reps}
-                              </span>
+                                  <p className="planner-exercise-cue">
+                                    {exercise.instructions ||
+                                      exercise.description ||
+                                      resolved?.description ||
+                                      "Maintain strict form, controlled tempo, and steady breathing throughout sets."}
+                                  </p>
 
-                            </li>
+                                  <div className="planner-card-actions">
+                                    <button
+                                      type="button"
+                                      className="open-exercise-detail-btn"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/exercises/${exerciseSlug}`);
+                                      }}
+                                    >
+                                      ▶ Watch Exercise & Video
+                                    </button>
+                                  </div>
 
-                          )
+                                </div>
+                              );
+                            })}
+
+                          </div>
+                        ) : (
+                          <div className="planner-rest-day-box">
+                            😴 Active recovery & rest day. Hydrate, stretch, and allow muscle tissues to recuperate.
+                          </div>
                         )}
 
-                      </ul>
-
-                    </div>
-
-                  ))}
+                      </div>
+                    );
+                  })}
 
                 </div>
 
@@ -871,138 +956,6 @@ function AIPlanner() {
 
                 <p className="missing-note">
                   No exercise routine found. Generate your plan again.
-                </p>
-
-              )}
-
-              <hr />
-
-              {/* CLEAR DIET ROUTINE */}
-
-              <h3>🥗 Diet Routine</h3>
-
-              {plan.dietRoutine ? (
-
-                <div className="diet-routine">
-
-                  <div className="macro-grid">
-
-                    <div className="macro-card">
-
-                      <span>Calories</span>
-
-                      <strong>
-                        {plan.dietRoutine.dailyTargets?.calories} kcal
-                      </strong>
-
-                    </div>
-
-                    <div className="macro-card">
-
-                      <span>Protein</span>
-
-                      <strong>
-                        {plan.dietRoutine.dailyTargets?.protein} g
-                      </strong>
-
-                    </div>
-
-                    <div className="macro-card">
-
-                      <span>Carbs</span>
-
-                      <strong>
-                        {plan.dietRoutine.dailyTargets?.carbs} g
-                      </strong>
-
-                    </div>
-
-                    <div className="macro-card">
-
-                      <span>Fats</span>
-
-                      <strong>
-                        {plan.dietRoutine.dailyTargets?.fats} g
-                      </strong>
-
-                    </div>
-
-                    <div className="macro-card">
-
-                      <span>Water</span>
-
-                      <strong>
-                        {plan.dietRoutine.dailyTargets?.water}
-                      </strong>
-
-                    </div>
-
-                  </div>
-
-                  <div className="meal-list">
-
-                    {plan.dietRoutine.meals?.map((meal) => (
-
-                      <div className="meal-card" key={meal.name}>
-
-                        <div className="meal-card-head">
-
-                          <strong>{meal.name}</strong>
-
-                          <span>{meal.time}</span>
-
-                        </div>
-
-                        <p className="meal-macros">
-                          {meal.calories} kcal &nbsp;•&nbsp; P{" "}
-                          {meal.protein}g &nbsp;•&nbsp; C{" "}
-                          {meal.carbs}g &nbsp;•&nbsp; F {meal.fats}g
-                        </p>
-
-                        <ul>
-
-                          {meal.items?.map((item, index) => (
-
-                            <li key={index}>{item}</li>
-
-                          ))}
-
-                        </ul>
-
-                      </div>
-
-                    ))}
-
-                  </div>
-
-                  {plan.dietRoutine.rules?.length > 0 && (
-
-                    <div className="diet-rules">
-
-                      <h4>Diet Rules</h4>
-
-                      <ul>
-
-                        {plan.dietRoutine.rules.map(
-                          (rule, index) => (
-
-                            <li key={index}>{rule}</li>
-
-                          )
-                        )}
-
-                      </ul>
-
-                    </div>
-
-                  )}
-
-                </div>
-
-              ) : (
-
-                <p className="missing-note">
-                  No diet routine found. Generate your plan again.
                 </p>
 
               )}

@@ -25,6 +25,29 @@ const userSchema = new mongoose.Schema(
             type: String,
             enum: ["user", "admin"],
             default: "user"
+        },
+
+        gender: {
+            type: String,
+            enum: ["Male", "Female", "Transgender", "male", "female", "transgender", "other"],
+            default: "Male"
+        },
+
+        age: {
+            type: Number
+        },
+
+        height: {
+            type: Number
+        },
+
+        weight: {
+            type: Number
+        },
+
+        goal: {
+            type: String,
+            default: "General Fitness"
         }
     },
 
@@ -33,5 +56,4 @@ const userSchema = new mongoose.Schema(
     }
 );
 
-module.exports =
-    mongoose.model("User", userSchema);
+module.exports = mongoose.model("User", userSchema);

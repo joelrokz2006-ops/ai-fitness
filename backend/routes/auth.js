@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const { verifyToken } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -44,7 +45,12 @@ router.post("/register", async (req, res) => {
             name,
             email,
             password,
-            role
+            role,
+            gender,
+            age,
+            height,
+            weight,
+            goal
         } = req.body;
 
         // -------------------------------------------------
@@ -188,7 +194,17 @@ router.post("/register", async (req, res) => {
 
             password: hashedPassword,
 
-            role: role || "user"
+            role: role || "user",
+
+            gender: gender || "Male",
+
+            age: age ? Number(age) : undefined,
+
+            height: height ? Number(height) : undefined,
+
+            weight: weight ? Number(weight) : undefined,
+
+            goal: goal || "General Fitness"
         });
 
         console.log(
@@ -489,7 +505,7 @@ router.post("/login", async (req, res) => {
                     role: user.role
                 },
 
-                process.env.JWT_SECRET,
+                process.env.JWT_SECRET || "ai_fitness_secret",
 
                 {
                     expiresIn: "30d"
@@ -543,7 +559,12 @@ router.post("/login", async (req, res) => {
                 id: user._id,
                 name: user.name,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                gender: user.gender || "Male",
+                age: user.age,
+                height: user.height,
+                weight: user.weight,
+                goal: user.goal || "General Fitness"
             }
         });
 
@@ -586,6 +607,95 @@ router.post("/login", async (req, res) => {
             message:
                 error.message ||
                 "Login failed"
+        });
+    }
+});
+
+// =====================================================
+// GET CURRENT USER PROFILE
+// GET /api/auth/profile
+// =====================================================
+
+router.get("/profile", verifyToken, async (req, res) => {
+    try {
+        const userId = req.user?.id || req.user?._id;
+        const user = await User.findById(userId).select("-password");
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                gender: user.gender || "Male",
+                age: user.age,
+                height: user.height,
+                weight: user.weight,
+                goal: user.goal || "General Fitness"
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Failed to load profile"
+        });
+    }
+});
+
+// =====================================================
+// UPDATE USER PROFILE
+// PUT /api/auth/profile
+// =====================================================
+
+router.put("/profile", verifyToken, async (req, res) => {
+    try {
+        const userId = req.user?.id || req.user?._id;
+        const { name, gender, age, height, weight, goal } = req.body;
+
+        const updateData = {};
+        if (name) updateData.name = String(name).trim();
+        if (gender) updateData.gender = gender;
+        if (age !== undefined && age !== "") updateData.age = Number(age);
+        if (height !== undefined && height !== "") updateData.height = Number(height);
+        if (weight !== undefined && weight !== "") updateData.weight = Number(weight);
+        if (goal) updateData.goal = goal;
+
+        const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true }).select("-password");
+
+        if (!updatedUser) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Profile updated successfully",
+            user: {
+                id: updatedUser._id,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                role: updatedUser.role,
+                gender: updatedUser.gender || "Male",
+                age: updatedUser.age,
+                height: updatedUser.height,
+                weight: updatedUser.weight,
+                goal: updatedUser.goal || "General Fitness"
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Failed to update profile"
         });
     }
 });

@@ -94,6 +94,24 @@ function App() {
         />
 
         <Route
+          path="/exercise/:slug"
+          element={
+            <ProtectedRoute>
+              <ExerciseDetail />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/exercises/:slug"
+          element={
+            <ProtectedRoute>
+              <ExerciseDetail />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/ai-trainer"
           element={
             <ProtectedRoute>

@@ -1,20 +1,37 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { getMyDietPlan } from "../services/api";
+import React, { useEffect, useState, useCallback } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import {
+  getMyDietPlan,
+  getMyPlanner,
+  getProgress,
+  toggleProgress,
+  updateProgressWater,
+} from "../services/api";
+import { slugify } from "../data/exercise";
 import "./Dashboard.css";
+
+// Helper to get local date string YYYY-MM-DD
+const getLocalDateString = (d = new Date()) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 function Dashboard() {
   const navigate = useNavigate();
 
-  // User & Plan State
+  // User & Plans State
   const [user, setUser] = useState(null);
   const [plannerData, setPlannerData] = useState(null);
   const [dietPlanData, setDietPlanData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [statusMessage, setStatusMessage] = useState(null);
+  const [updatingItem, setUpdatingItem] = useState(null);
 
-  // Interactive Daily Trackers State (Persisted in localStorage by date)
+  // Date & Calendar State
   const today = new Date();
-  const dateKey = today.toISOString().split("T")[0]; // YYYY-MM-DD
+  const dateKey = getLocalDateString(today);
   const dayName = today.toLocaleDateString("en-US", { weekday: "long" });
   const fullDate = today.toLocaleDateString("en-US", {
     day: "numeric",
@@ -22,288 +39,369 @@ function Dashboard() {
     year: "numeric",
   });
 
-  const [waterGlasses, setWaterGlasses] = useState(0); // in ml: glasses * 250ml
-  const [workoutDone, setWorkoutDone] = useState(false);
+  // Trackers State (Persisted in Backend & mirrored in localStorage)
+  const [waterGlasses, setWaterGlasses] = useState(0);
   const [completedExercises, setCompletedExercises] = useState([]);
   const [completedMeals, setCompletedMeals] = useState([]);
   const [activeTab, setActiveTab] = useState("overview"); // 'overview' | 'workout' | 'nutrition'
 
-  // Weekly Workout Schedule Default Mapping
-  const defaultWeeklySplits = {
-    Monday: { focus: "Chest & Triceps", category: "Chest", secondary: "Arms", duration: "55 Min", intensity: "High", calories: "420 kcal" },
-    Tuesday: { focus: "Back & Biceps", category: "Back", secondary: "Arms", duration: "60 Min", intensity: "High", calories: "450 kcal" },
-    Wednesday: { focus: "Legs & Calves", category: "Legs", secondary: "Legs", duration: "65 Min", intensity: "Extreme", calories: "520 kcal" },
-    Thursday: { focus: "Shoulders & Traps", category: "Shoulders", secondary: "Back", duration: "50 Min", intensity: "Medium", calories: "380 kcal" },
-    Friday: { focus: "Core & Abdominals", category: "Abs", secondary: "Abs", duration: "45 Min", intensity: "Medium", calories: "320 kcal" },
-    Saturday: { focus: "Full Body Hypertrophy", category: "Chest", secondary: "Legs", duration: "60 Min", intensity: "High", calories: "480 kcal" },
-    Sunday: { focus: "Active Recovery & Mobility", category: "Abs", secondary: "Home workout", duration: "30 Min", intensity: "Low", calories: "180 kcal" },
-  };
-
-  // Recommended Exercises per category
-  const categoryExercises = {
-    Chest: [
-      { name: "Barbell Bench Press", sets: "4 Sets", reps: "8-10 Reps", target: "Middle Chest", icon: "🏋️‍♂️" },
-      { name: "Incline Dumbbell Press", sets: "3 Sets", reps: "10-12 Reps", target: "Upper Chest", icon: "💪" },
-      { name: "Cable Crossover / Fly", sets: "3 Sets", reps: "15 Reps", target: "Chest Stretch", icon: "⚡" },
-      { name: "Dips / Push-ups", sets: "3 Sets", reps: "12-15 Reps", target: "Lower Chest", icon: "🔥" }
-    ],
-    Back: [
-      { name: "Pull Ups", sets: "4 Sets", reps: "Failure", target: "Lats & Upper Back", icon: "🧗" },
-      { name: "Lat Pulldown", sets: "4 Sets", reps: "10-12 Reps", target: "Back Width", icon: "🏋️‍♂️" },
-      { name: "Seated Cable Row", sets: "3 Sets", reps: "12 Reps", target: "Mid Back", icon: "⚡" },
-      { name: "Deadlift / Hyperextension", sets: "4 Sets", reps: "8-10 Reps", target: "Lower Back", icon: "🔥" }
-    ],
-    Legs: [
-      { name: "Barbell Squats", sets: "4 Sets", reps: "8-10 Reps", target: "Quads & Glutes", icon: "🦵" },
-      { name: "Leg Press", sets: "4 Sets", reps: "12 Reps", target: "Quadriceps", icon: "🏋️‍♂️" },
-      { name: "Sumo Deadlift / Lunges", sets: "3 Sets", reps: "12 Reps", target: "Hamstrings", icon: "🔥" },
-      { name: "Standing Calf Raises", sets: "4 Sets", reps: "15-20 Reps", target: "Calves", icon: "⚡" }
-    ],
-    Shoulders: [
-      { name: "Overhead Barbell Press", sets: "4 Sets", reps: "8-10 Reps", target: "Anterior Delts", icon: "🏋️‍♂️" },
-      { name: "Dumbbell Lateral Raise", sets: "4 Sets", reps: "12-15 Reps", target: "Side Deltoids", icon: "💪" },
-      { name: "Cable Face Pull", sets: "3 Sets", reps: "15 Reps", target: "Rear Deltoids", icon: "⚡" },
-      { name: "Dumbbell Shrugs", sets: "4 Sets", reps: "15 Reps", target: "Upper Traps", icon: "🔥" }
-    ],
-    Arms: [
-      { name: "Dumbbell Bicep Curl", sets: "4 Sets", reps: "10-12 Reps", target: "Biceps Brachii", icon: "💪" },
-      { name: "Rope Tricep Pushdown", sets: "4 Sets", reps: "12-15 Reps", target: "Tricep Head", icon: "⚡" },
-      { name: "Hammer Curls", sets: "3 Sets", reps: "12 Reps", target: "Brachialis", icon: "🏋️‍♂️" },
-      { name: "Overhead Tricep Extension", sets: "3 Sets", reps: "12 Reps", target: "Tricep Stretch", icon: "🔥" }
-    ],
-    Abs: [
-      { name: "Hanging Knee Raises", sets: "4 Sets", reps: "15 Reps", target: "Lower Abs", icon: "⚡" },
-      { name: "Cable Crunches", sets: "3 Sets", reps: "15 Reps", target: "Upper Abs", icon: "🔥" },
-      { name: "Russian Twists", sets: "3 Sets", reps: "20 Reps", target: "Obliques", icon: "🔄" },
-      { name: "Plank Hold", sets: "3 Sets", reps: "60 Seconds", target: "Core Stability", icon: "⏱️" }
-    ]
-  };
-
+  // Load User profile
   useEffect(() => {
-    // 1. Load User
     const storedUser = localStorage.getItem("user");
-    let currentUserId = "6a4f325f87cee48babb5be6e";
     if (storedUser) {
       try {
         const parsed = JSON.parse(storedUser);
         setUser(parsed);
-        if (parsed.id || parsed._id) {
-          currentUserId = parsed.id || parsed._id;
-        }
       } catch (e) {
         console.error("Error parsing user from localStorage:", e);
       }
     }
+  }, []);
 
-    // 2. Load Stored Daily Trackers
-    const savedTrackers = localStorage.getItem(`daily_tracker_${dateKey}`);
-    if (savedTrackers) {
-      try {
-        const parsedTracker = JSON.parse(savedTrackers);
-        setWaterGlasses(parsedTracker.waterGlasses || 0);
-        setWorkoutDone(parsedTracker.workoutDone || false);
-        setCompletedExercises(parsedTracker.completedExercises || []);
-        setCompletedMeals(parsedTracker.completedMeals || []);
-      } catch (e) {
-        console.error("Error parsing daily tracker:", e);
+  // Fetch Dashboard Plans and Today's authoritative backend progress
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true);
+    setStatusMessage(null);
+
+    let activeDiet = null;
+    let activePlanner = null;
+
+    // 1. Fetch Diet Plan
+    try {
+      const dietRes = await getMyDietPlan();
+      if (dietRes && dietRes.dietPlan) {
+        activeDiet = dietRes.dietPlan;
+        setDietPlanData(activeDiet);
+      } else {
+        setDietPlanData(null);
       }
+    } catch (err) {
+      // 404 or missing plan is a standard empty state
+      setDietPlanData(null);
     }
 
-    // 3. Fetch Data in Parallel (Planner + Diet)
-    const fetchDashboardData = async () => {
-      // First check locally cached planner
-      const localPlanner = localStorage.getItem("userPlanner");
-      if (localPlanner) {
-        try {
-          setPlannerData(JSON.parse(localPlanner));
-        } catch (e) {
-          console.error("Error reading local planner:", e);
+    // 2. Fetch Gym Planner
+    try {
+      const planner = await getMyPlanner();
+      if (planner) {
+        activePlanner = planner;
+        setPlannerData(activePlanner);
+      } else {
+        setPlannerData(null);
+      }
+    } catch (err) {
+      setPlannerData(null);
+    }
+
+    // 3. Fetch authoritative Daily Progress from Backend for today
+    try {
+      const progressData = await getProgress(
+        dateKey,
+        activeDiet?._id,
+        activePlanner?._id
+      );
+
+      if (progressData) {
+        setCompletedMeals(progressData.completedMeals || []);
+        setCompletedExercises(progressData.completedExercises || []);
+        setWaterGlasses(progressData.waterGlasses || 0);
+
+        // Update local mirror
+        localStorage.setItem(
+          `daily_tracker_${dateKey}`,
+          JSON.stringify({
+            waterGlasses: progressData.waterGlasses || 0,
+            completedExercises: progressData.completedExercises || [],
+            completedMeals: progressData.completedMeals || [],
+          })
+        );
+      } else {
+        // Fallback to local storage if offline or not logged in
+        const savedTrackers = localStorage.getItem(`daily_tracker_${dateKey}`);
+        if (savedTrackers) {
+          try {
+            const parsed = JSON.parse(savedTrackers);
+            setWaterGlasses(parsed.waterGlasses || 0);
+            setCompletedExercises(parsed.completedExercises || []);
+            setCompletedMeals(parsed.completedMeals || []);
+          } catch (e) {}
         }
       }
-
-      try {
-        // Fetch Planner from API
-        try {
-          const plannerRes = await fetch(`/api/planner/${currentUserId}`);
-          const plannerJson = await plannerRes.json();
-          if (plannerJson.success && plannerJson.data) {
-            setPlannerData(plannerJson.data);
-            localStorage.setItem("userPlanner", JSON.stringify(plannerJson.data));
-          }
-        } catch (err) {
-          console.warn("Could not fetch remote planner, using cached/default split.");
-        }
-
-        // Fetch Diet
-        try {
-          const dietRes = await getMyDietPlan();
-          if (dietRes && dietRes.dietPlan) {
-            setDietPlanData(dietRes.dietPlan);
-          }
-        } catch (err) {
-          console.warn("No diet plan generated yet or using defaults.");
-        }
-      } catch (error) {
-        console.error("Dashboard data load error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboardData();
+    } catch (err) {
+      console.warn("Could not fetch remote daily progress:", err.message);
+    } finally {
+      setLoading(false);
+    }
   }, [dateKey]);
 
-  // Save Trackers on State Change
-  const saveTrackers = (newWater, newWorkout, newExercises, newMeals) => {
-    localStorage.setItem(
-      `daily_tracker_${dateKey}`,
-      JSON.stringify({
-        waterGlasses: newWater !== undefined ? newWater : waterGlasses,
-        workoutDone: newWorkout !== undefined ? newWorkout : workoutDone,
-        completedExercises: newExercises !== undefined ? newExercises : completedExercises,
-        completedMeals: newMeals !== undefined ? newMeals : completedMeals,
-      })
-    );
-  };
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
-  // Water Actions
-  const handleWaterAdd = () => {
-    const next = waterGlasses + 1;
-    setWaterGlasses(next);
-    saveTrackers(next, undefined, undefined, undefined);
-  };
+  // ==========================================
+  // PROGRESS ACTIONS (WITH BACKEND PERSISTENCE)
+  // ==========================================
 
-  const handleWaterSub = () => {
-    if (waterGlasses > 0) {
-      const next = waterGlasses - 1;
-      setWaterGlasses(next);
-      saveTrackers(next, undefined, undefined, undefined);
+  // Toggle Meal Completion
+  const handleToggleMeal = async (mealIdentifier) => {
+    if (updatingItem) return; // Prevent double submission
+    setUpdatingItem(mealIdentifier);
+
+    const isCurrentlyDone = completedMeals.includes(mealIdentifier);
+    const nextDone = !isCurrentlyDone;
+
+    // Optimistic UI update
+    const nextMeals = nextDone
+      ? [...completedMeals, mealIdentifier]
+      : completedMeals.filter((m) => m !== mealIdentifier);
+    setCompletedMeals(nextMeals);
+
+    try {
+      await toggleProgress({
+        date: dateKey,
+        type: "diet",
+        itemId: mealIdentifier,
+        completed: nextDone,
+        planId: dietPlanData?._id,
+      });
+
+      // Update local storage mirror
+      const savedTrackers = localStorage.getItem(`daily_tracker_${dateKey}`);
+      const parsed = savedTrackers ? JSON.parse(savedTrackers) : {};
+      localStorage.setItem(
+        `daily_tracker_${dateKey}`,
+        JSON.stringify({ ...parsed, completedMeals: nextMeals })
+      );
+    } catch (err) {
+      // Revert on failure
+      console.error("Meal completion sync error:", err);
+      setCompletedMeals(completedMeals);
+      setStatusMessage({
+        type: "error",
+        text: `Failed to save status for ${mealIdentifier}: ${err.message}`,
+      });
+    } finally {
+      setUpdatingItem(null);
     }
   };
 
-  // Toggle Exercise Item Completion
-  const toggleExercise = (name) => {
-    const next = completedExercises.includes(name)
-      ? completedExercises.filter((n) => n !== name)
-      : [...completedExercises, name];
-    setCompletedExercises(next);
-    const allDone = next.length >= (todaysRoutine.exercises?.length || 4);
-    setWorkoutDone(allDone);
-    saveTrackers(undefined, allDone, next, undefined);
+  // Toggle Exercise Completion
+  const handleToggleExercise = async (exerciseName) => {
+    if (updatingItem) return; // Prevent double submission
+    setUpdatingItem(exerciseName);
+
+    const isCurrentlyDone = completedExercises.includes(exerciseName);
+    const nextDone = !isCurrentlyDone;
+
+    // Optimistic UI update
+    const nextExercises = nextDone
+      ? [...completedExercises, exerciseName]
+      : completedExercises.filter((e) => e !== exerciseName);
+    setCompletedExercises(nextExercises);
+
+    try {
+      await toggleProgress({
+        date: dateKey,
+        type: "workout",
+        itemId: exerciseName,
+        completed: nextDone,
+        planId: plannerData?._id,
+      });
+
+      // Update local storage mirror
+      const savedTrackers = localStorage.getItem(`daily_tracker_${dateKey}`);
+      const parsed = savedTrackers ? JSON.parse(savedTrackers) : {};
+      localStorage.setItem(
+        `daily_tracker_${dateKey}`,
+        JSON.stringify({ ...parsed, completedExercises: nextExercises })
+      );
+    } catch (err) {
+      // Revert on failure
+      console.error("Exercise completion sync error:", err);
+      setCompletedExercises(completedExercises);
+      setStatusMessage({
+        type: "error",
+        text: `Failed to save status for ${exerciseName}: ${err.message}`,
+      });
+    } finally {
+      setUpdatingItem(null);
+    }
   };
 
-  // Toggle Meal Completion
-  const toggleMeal = (mealType) => {
-    const next = completedMeals.includes(mealType)
-      ? completedMeals.filter((m) => m !== mealType)
-      : [...completedMeals, mealType];
-    setCompletedMeals(next);
-    saveTrackers(undefined, undefined, undefined, next);
+  // Water Hydration Actions
+  const handleWaterChange = async (delta) => {
+    const nextGlasses = Math.max(0, waterGlasses + delta);
+    setWaterGlasses(nextGlasses);
+
+    try {
+      await updateProgressWater({
+        date: dateKey,
+        waterGlasses: nextGlasses,
+      });
+
+      const savedTrackers = localStorage.getItem(`daily_tracker_${dateKey}`);
+      const parsed = savedTrackers ? JSON.parse(savedTrackers) : {};
+      localStorage.setItem(
+        `daily_tracker_${dateKey}`,
+        JSON.stringify({ ...parsed, waterGlasses: nextGlasses })
+      );
+    } catch (err) {
+      console.warn("Water update error:", err);
+    }
   };
 
-  // Computed Values
-  const defaultSplit = defaultWeeklySplits[dayName] || defaultWeeklySplits.Monday;
-  const todaysWorkoutTitle = plannerData?.workoutPlan?.[dayName] || defaultSplit.focus;
-  const currentCategory = defaultSplit.category;
-  const exercisesForToday = categoryExercises[currentCategory] || categoryExercises.Chest;
+  // ==========================================
+  // RESOLVE TODAY'S WORKOUT PROTOCOL
+  // ==========================================
+  const todaysRoutine = plannerData?.exerciseRoutine?.find(
+    (r) => r.day?.toLowerCase() === dayName.toLowerCase()
+  );
 
-  const todaysRoutine = {
-    title: todaysWorkoutTitle,
-    category: currentCategory,
-    duration: plannerData?.workoutDuration || defaultSplit.duration,
-    intensity: defaultSplit.intensity,
-    caloriesEst: defaultSplit.calories,
-    exercises: exercisesForToday
+  const todaysWorkoutTitle =
+    todaysRoutine?.focus ||
+    plannerData?.workoutPlan?.[dayName] ||
+    "Rest & Recovery";
+
+  const isRestDay =
+    !todaysRoutine ||
+    todaysRoutine.exercises?.length === 0 ||
+    /rest/i.test(todaysRoutine.focus || "");
+
+  const plannedExercises = todaysRoutine?.exercises || [];
+  const totalExercises = plannedExercises.length;
+  const completedExercisesCount = plannedExercises.filter((ex) =>
+    completedExercises.includes(ex.name)
+  ).length;
+
+  const workoutPct =
+    totalExercises > 0
+      ? Math.round((completedExercisesCount / totalExercises) * 100)
+      : null;
+
+  // Toggle entire workout session
+  const allExercisesCompleted =
+    totalExercises > 0 && completedExercisesCount === totalExercises;
+
+  const handleToggleEntireWorkout = async () => {
+    if (totalExercises === 0 || updatingItem) return;
+
+    const nextState = !allExercisesCompleted;
+    setUpdatingItem("all_exercises");
+
+    try {
+      // Toggle each exercise in sequence
+      for (const ex of plannedExercises) {
+        await toggleProgress({
+          date: dateKey,
+          type: "workout",
+          itemId: ex.name,
+          completed: nextState,
+          planId: plannerData?._id,
+        });
+      }
+
+      const nextList = nextState
+        ? Array.from(new Set([...completedExercises, ...plannedExercises.map((e) => e.name)]))
+        : completedExercises.filter(
+            (name) => !plannedExercises.some((e) => e.name === name)
+          );
+
+      setCompletedExercises(nextList);
+
+      const savedTrackers = localStorage.getItem(`daily_tracker_${dateKey}`);
+      const parsed = savedTrackers ? JSON.parse(savedTrackers) : {};
+      localStorage.setItem(
+        `daily_tracker_${dateKey}`,
+        JSON.stringify({ ...parsed, completedExercises: nextList })
+      );
+    } catch (err) {
+      setStatusMessage({
+        type: "error",
+        text: `Error updating workout session: ${err.message}`,
+      });
+    } finally {
+      setUpdatingItem(null);
+    }
   };
 
-  // Nutrition Targets - seamlessly connect with Diet Plan or Gym Planner
-  const calorieGoal = Number(
-    dietPlanData?.dailyTargets?.calories ||
-    plannerData?.dietRoutine?.dailyTargets?.calories ||
-    plannerData?.dailyCalories ||
-    2400
-  );
-  const proteinGoal = Number(
-    dietPlanData?.dailyTargets?.protein ||
-    plannerData?.dietRoutine?.dailyTargets?.protein ||
-    plannerData?.protein?.replace?.("g", "") ||
-    160
-  );
-  const carbsGoal = Number(
-    dietPlanData?.dailyTargets?.carbs ||
-    plannerData?.dietRoutine?.dailyTargets?.carbs ||
-    plannerData?.carbs?.replace?.("g", "") ||
-    240
-  );
-  const fatsGoal = Number(
-    dietPlanData?.dailyTargets?.fats ||
-    plannerData?.dietRoutine?.dailyTargets?.fats ||
-    plannerData?.fats?.replace?.("g", "") ||
-    65
-  );
+  // ==========================================
+  // RESOLVE TODAY'S DIET PLAN
+  // ==========================================
+  const plannedMeals = dietPlanData?.meals || [];
+  const totalMeals = plannedMeals.length;
 
-  const waterTargetLiters = Number(String(plannerData?.waterGoal || "3").match(/\d+/)?.[0]) || 3.0;
+  const getMealIdentifier = (meal, idx) => meal.mealName || meal.mealType || `Meal ${idx + 1}`;
+
+  const completedMealsCount = plannedMeals.filter((m, idx) =>
+    completedMeals.includes(getMealIdentifier(m, idx))
+  ).length;
+
+  const dietPct =
+    totalMeals > 0
+      ? Math.round((completedMealsCount / totalMeals) * 100)
+      : null;
+
+  // ==========================================
+  // NUTRITION TARGETS & MACROS
+  // ==========================================
+  const calorieGoal = Number(dietPlanData?.dailyTargets?.calories || 0);
+  const proteinGoal = Number(dietPlanData?.dailyTargets?.protein || 0);
+  const carbsGoal = Number(dietPlanData?.dailyTargets?.carbs || 0);
+  const fatsGoal = Number(dietPlanData?.dailyTargets?.fats || 0);
+
+  const waterTargetLiters =
+    Number(String(plannerData?.waterIntake || "3").match(/\d+/)?.[0]) || 3.0;
   const waterConsumedLiters = ((waterGlasses * 250) / 1000).toFixed(2);
-  const waterPercent = Math.min(Math.round((waterConsumedLiters / waterTargetLiters) * 100), 100);
+  const waterPercent = Math.min(
+    Math.round((waterConsumedLiters / waterTargetLiters) * 100),
+    100
+  );
 
-  // Macro percentages for visual distribution bars
+  // Macro distribution percentages
   const totalCalsEst = Math.max(calorieGoal, 1);
-  const proteinPct = Math.min(100, Math.round(((proteinGoal * 4) / totalCalsEst) * 100)) || 30;
-  const carbsPct = Math.min(100, Math.round(((carbsGoal * 4) / totalCalsEst) * 100)) || 45;
-  const fatsPct = Math.min(100, Math.round(((fatsGoal * 9) / totalCalsEst) * 100)) || 25;
+  const proteinPct = Math.min(100, Math.round(((proteinGoal * 4) / totalCalsEst) * 100)) || 0;
+  const carbsPct = Math.min(100, Math.round(((carbsGoal * 4) / totalCalsEst) * 100)) || 0;
+  const fatsPct = Math.min(100, Math.round(((fatsGoal * 9) / totalCalsEst) * 100)) || 0;
 
-  // Meal list from DietPlan if available, or Gym Planner dietRoutine, or fallback template
-  let mealsList = [];
-  if (dietPlanData?.meals?.length > 0) {
-    mealsList = dietPlanData.meals.map((m, idx) => {
-      const foodNames = m.foods?.map((f) => f.name).filter(Boolean).join(", ");
-      return {
-        id: `diet_meal_${idx}`,
-        type: m.mealName || m.mealType || `Meal ${idx + 1}`,
-        name: foodNames || m.mealName || m.mealType,
-        calories: Math.round(m.totalCalories || 0),
-        protein: Math.round(m.totalProtein || 0),
-        carbs: Math.round(m.totalCarbs || 0),
-        fats: Math.round(m.totalFats || 0)
-      };
-    });
-  } else if (plannerData?.dietRoutine?.meals?.length > 0) {
-    mealsList = plannerData.dietRoutine.meals.map((m, idx) => ({
-      id: `planner_meal_${idx}`,
-      type: m.name || `Meal ${idx + 1}`,
-      name: Array.isArray(m.items) ? m.items.join(", ") : m.name,
-      calories: Math.round(m.calories || 0),
-      protein: Math.round(m.protein || 0),
-      carbs: Math.round(m.carbs || 0),
-      fats: Math.round(m.fats || 0)
-    }));
-  } else {
-    mealsList = [
-      { id: "default_0", type: "Breakfast", name: "Oatmeal with Whey Protein & Berries", calories: 520, protein: 38, carbs: 65, fats: 12 },
-      { id: "default_1", type: "Lunch", name: "Grilled Chicken Breast with Brown Rice & Broccoli", calories: 680, protein: 52, carbs: 75, fats: 16 },
-      { id: "default_2", type: "Snacks", name: "Greek Yogurt with Almonds & Banana", calories: 340, protein: 24, carbs: 36, fats: 11 },
-      { id: "default_3", type: "Dinner", name: "Salmon Fillet with Quinoa & Steamed Asparagus", calories: 610, protein: 46, carbs: 48, fats: 20 },
-    ];
-  }
+  // ==========================================
+  // OVERALL PROGRESS (DYNAMIC & STRICTLY REAL)
+  // ==========================================
+  const totalPlannedItems =
+    (dietPlanData ? totalMeals : 0) +
+    (plannerData && !isRestDay ? totalExercises : 0);
 
-  // Daily Score Calculation
-  const exerciseScore = (completedExercises.length / Math.max(todaysRoutine.exercises.length, 1)) * 40;
-  const mealScore = (completedMeals.length / Math.max(mealsList.length, 1)) * 40;
-  const hydrationScore = (Math.min(waterPercent, 100) / 100) * 20;
-  const overallDailyScore = Math.round(exerciseScore + mealScore + hydrationScore);
+  const totalCompletedItems =
+    (dietPlanData ? completedMealsCount : 0) +
+    (plannerData && !isRestDay ? completedExercisesCount : 0);
+
+  const overallPct =
+    totalPlannedItems > 0
+      ? Math.round((totalCompletedItems / totalPlannedItems) * 100)
+      : dietPlanData || plannerData
+      ? 0
+      : null;
 
   if (loading) {
     return (
       <div className="dashboard-loading-state">
         <div className="dashboard-spinner"></div>
-        <h2>Initializing Biometric Dashboard...</h2>
+        <h2>Loading Your Biometric Dashboard...</h2>
+        <p>Syncing saved diet, gym schedule, and completion progress.</p>
       </div>
     );
   }
 
   return (
     <div className="daily-dashboard">
-      {/* 1. HERO GREETING & STATUS BANNER */}
+      {/* 1. STATUS ALERT BANNER (IF ANY) */}
+      {statusMessage && (
+        <div className={`dash-status-toast ${statusMessage.type}`}>
+          <span>{statusMessage.text}</span>
+          <button onClick={() => setStatusMessage(null)}>✕</button>
+        </div>
+      )}
+
+      {/* 2. HERO GREETING & BIOMETRIC HEADER */}
       <header className="dashboard-header-block">
         <div className="header-greeting">
           <div className="eyebrow-tag">
@@ -313,7 +411,7 @@ function Dashboard() {
             Welcome back, <span>{user?.name || "Athlete"}</span> 💪
           </h1>
           <p className="header-date">
-            📅 {dayName}, {fullDate} • Goal: <strong>{plannerData?.goal || "Muscle Growth & Strength"}</strong>
+            📅 {dayName}, {fullDate} • Track your personalized nutrition & workout directives
           </p>
         </div>
 
@@ -327,32 +425,127 @@ function Dashboard() {
                 />
                 <path
                   className="circle"
-                  strokeDasharray={`${overallDailyScore}, 100`}
+                  strokeDasharray={`${overallPct || 0}, 100`}
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 />
               </svg>
-              <span className="score-text">{overallDailyScore}%</span>
+              <span className="score-text">
+                {overallPct !== null ? `${overallPct}%` : "—"}
+              </span>
             </div>
             <div className="score-meta">
-              <h4>Daily Completion</h4>
-              <p>{workoutDone ? "Workout Logged" : `${completedExercises.length}/${todaysRoutine.exercises.length} Exercises`}</p>
+              <h4>Overall Daily Progress</h4>
+              <p>
+                {totalPlannedItems > 0
+                  ? `${totalCompletedItems} of ${totalPlannedItems} planned items completed`
+                  : "No active plans yet"}
+              </p>
             </div>
           </div>
         </div>
       </header>
 
-      {/* 2. TOP METRIC KPI CARDS */}
+      {/* 3. TODAY'S PROGRESS SUMMARY SECTION (MD SECTION 3 & 6) */}
+      <section className="todays-progress-banner">
+        <div className="progress-banner-header">
+          <div>
+            <span className="tag-pill tag-purple">TODAY'S PROGRESS SUMMARY</span>
+            <h2>Daily Execution Dashboard</h2>
+          </div>
+          <div className="banner-actions">
+            <button className="action-pill-btn" onClick={() => navigate("/diet")}>
+              🥗 View Full Diet Plan
+            </button>
+            <button className="action-pill-btn" onClick={() => navigate("/ai-planner")}>
+              📋 Open Gym Planner
+            </button>
+          </div>
+        </div>
+
+        <div className="progress-summary-cards-grid">
+          {/* DIET PROGRESS CARD */}
+          <div className="progress-summary-card">
+            <div className="progress-card-top">
+              <span className="card-lbl">🥗 DIET PROGRESS</span>
+              <strong className="card-stat">
+                {dietPct !== null ? `${dietPct}%` : "—"}
+              </strong>
+            </div>
+            <div className="summary-bar-track">
+              <div
+                className="summary-bar-fill coral"
+                style={{ width: `${dietPct || 0}%` }}
+              ></div>
+            </div>
+            <p className="summary-desc">
+              {dietPlanData
+                ? `${completedMealsCount} of ${totalMeals} meals completed`
+                : "No diet plan saved yet"}
+            </p>
+          </div>
+
+          {/* WORKOUT PROGRESS CARD */}
+          <div className="progress-summary-card">
+            <div className="progress-card-top">
+              <span className="card-lbl">🏋️ WORKOUT PROGRESS</span>
+              <strong className="card-stat">
+                {workoutPct !== null ? `${workoutPct}%` : isRestDay && plannerData ? "Rest Day" : "—"}
+              </strong>
+            </div>
+            <div className="summary-bar-track">
+              <div
+                className="summary-bar-fill emerald"
+                style={{ width: `${workoutPct || 0}%` }}
+              ></div>
+            </div>
+            <p className="summary-desc">
+              {plannerData
+                ? isRestDay
+                  ? "Scheduled Rest Day — Active Recovery"
+                  : `${completedExercisesCount} of ${totalExercises} exercises completed`
+                : "No gym plan saved yet"}
+            </p>
+          </div>
+
+          {/* OVERALL PROGRESS CARD */}
+          <div className="progress-summary-card">
+            <div className="progress-card-top">
+              <span className="card-lbl">⚡ OVERALL PROGRESS</span>
+              <strong className="card-stat">
+                {overallPct !== null ? `${overallPct}%` : "—"}
+              </strong>
+            </div>
+            <div className="summary-bar-track">
+              <div
+                className="summary-bar-fill indigo"
+                style={{ width: `${overallPct || 0}%` }}
+              ></div>
+            </div>
+            <p className="summary-desc">
+              {totalPlannedItems > 0
+                ? `${totalCompletedItems} of ${totalPlannedItems} total planned items completed`
+                : "Create a plan to start tracking"}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. TOP METRIC KPI CARDS */}
       <section className="kpi-grid">
         <div className="kpi-card energy-kpi" onClick={() => navigate("/diet")}>
           <div className="kpi-top">
             <span className="kpi-icon">🔥</span>
-            <span className="kpi-label">Calories Goal</span>
+            <span className="kpi-label">Calories Target</span>
           </div>
-          <h2>{calorieGoal.toLocaleString()} <span>kcal</span></h2>
+          <h2>
+            {calorieGoal > 0 ? calorieGoal.toLocaleString() : "—"} <span>kcal</span>
+          </h2>
           <div className="kpi-bar-track">
-            <div className="kpi-bar-fill coral" style={{ width: "80%" }}></div>
+            <div className="kpi-bar-fill coral" style={{ width: calorieGoal > 0 ? "85%" : "0%" }}></div>
           </div>
-          <span className="kpi-footer">Target Energy Budget</span>
+          <span className="kpi-footer">
+            {dietPlanData ? dietPlanData.planName : "Generate Diet Plan →"}
+          </span>
         </div>
 
         <div className="kpi-card protein-kpi" onClick={() => navigate("/diet")}>
@@ -360,11 +553,15 @@ function Dashboard() {
             <span className="kpi-icon">🥩</span>
             <span className="kpi-label">Protein Target</span>
           </div>
-          <h2>{proteinGoal} <span>grams</span></h2>
+          <h2>
+            {proteinGoal > 0 ? proteinGoal : "—"} <span>grams</span>
+          </h2>
           <div className="kpi-bar-track">
-            <div className="kpi-bar-fill indigo" style={{ width: "75%" }}></div>
+            <div className="kpi-bar-fill indigo" style={{ width: proteinGoal > 0 ? "80%" : "0%" }}></div>
           </div>
-          <span className="kpi-footer">Hypertrophy Baseline</span>
+          <span className="kpi-footer">
+            {dietPlanData ? `${proteinPct}% of Daily Energy` : "Set in Diet Plan →"}
+          </span>
         </div>
 
         <div className="kpi-card hydration-kpi">
@@ -372,27 +569,45 @@ function Dashboard() {
             <span className="kpi-icon">💧</span>
             <span className="kpi-label">Hydration</span>
           </div>
-          <h2>{waterConsumedLiters} <span>/ {waterTargetLiters} L</span></h2>
+          <h2>
+            {waterConsumedLiters} <span>/ {waterTargetLiters} L</span>
+          </h2>
           <div className="kpi-bar-track">
             <div className="kpi-bar-fill cyan" style={{ width: `${waterPercent}%` }}></div>
           </div>
-          <span className="kpi-footer">{waterGlasses} Glasses Logged ({waterPercent}%)</span>
+          <span className="kpi-footer">
+            {waterGlasses} Glasses Logged ({waterPercent}%)
+          </span>
         </div>
 
-        <div className="kpi-card training-kpi" onClick={() => navigate("/exercises")}>
+        <div
+          className="kpi-card training-kpi"
+          onClick={() => (plannerData ? setActiveTab("workout") : navigate("/ai-planner"))}
+        >
           <div className="kpi-top">
             <span className="kpi-icon">🏋️</span>
-            <span className="kpi-label">Training Protocol</span>
+            <span className="kpi-label">Today's Training</span>
           </div>
-          <h2>{todaysRoutine.category}</h2>
+          <h2>{plannerData ? todaysWorkoutTitle : "No Workout"}</h2>
           <div className="kpi-bar-track">
-            <div className="kpi-bar-fill emerald" style={{ width: workoutDone ? "100%" : `${(completedExercises.length / todaysRoutine.exercises.length) * 100}%` }}></div>
+            <div
+              className="kpi-bar-fill emerald"
+              style={{
+                width: isRestDay ? "100%" : `${workoutPct || 0}%`,
+              }}
+            ></div>
           </div>
-          <span className="kpi-footer">{todaysRoutine.duration} • {todaysRoutine.intensity} Intensity</span>
+          <span className="kpi-footer">
+            {plannerData
+              ? isRestDay
+                ? "Active Rest Day"
+                : `${totalExercises} Planned Exercises`
+              : "Generate Workout Plan →"}
+          </span>
         </div>
       </section>
 
-      {/* 3. NAVIGATION TAB SWITCHER */}
+      {/* 5. NAVIGATION TAB SWITCHER */}
       <div className="dashboard-tabs">
         <button
           className={`dash-tab ${activeTab === "overview" ? "active" : ""}`}
@@ -404,202 +619,392 @@ function Dashboard() {
           className={`dash-tab ${activeTab === "workout" ? "active" : ""}`}
           onClick={() => setActiveTab("workout")}
         >
-          🏋️ Today's Workout ({todaysRoutine.category})
+          🏋️ Today's Workout ({plannerData ? (isRestDay ? "Rest Day" : `${totalExercises} Exercises`) : "Not Set"})
         </button>
         <button
           className={`dash-tab ${activeTab === "nutrition" ? "active" : ""}`}
           onClick={() => setActiveTab("nutrition")}
         >
-          🥗 Nutrition & Meals ({mealsList.length} Meals)
+          🥗 Full Diet Plan ({dietPlanData ? `${totalMeals} Meals` : "Not Set"})
         </button>
       </div>
 
-      {/* 4. MAIN CONTENT PANELS */}
+      {/* 6. MAIN CONTENT PANELS */}
       <div className="dashboard-content-grid">
         
-        {/* LEFT COLUMN: WORKOUT PROTOCOL (CONNECTED TO EXERCISES & ANATOMY) */}
+        {/* LEFT COLUMN: WORKOUT PROTOCOL (CONNECTED TO EXERCISES) */}
         {(activeTab === "overview" || activeTab === "workout") && (
           <div className="dash-card workout-focus-panel">
             <div className="card-top-bar">
               <div>
                 <span className="tag-pill tag-purple">LIVE WORKOUT MODULE</span>
-                <h2>🏋️ {todaysRoutine.title}</h2>
+                <h2>🏋️ Today's Workout — {todaysWorkoutTitle}</h2>
               </div>
-              <button
-                className="action-link-btn"
-                onClick={() => navigate("/exercises", { state: { targetMuscle: todaysRoutine.category } })}
-              >
-                Browse All Exercises →
-              </button>
-            </div>
-
-            <div className="routine-overview-banner">
-              <div className="routine-stat">
-                <span className="routine-lbl">TARGET SPLIT</span>
-                <strong>{todaysRoutine.category}</strong>
-              </div>
-              <div className="routine-stat">
-                <span className="routine-lbl">SESSION TIME</span>
-                <strong>{todaysRoutine.duration}</strong>
-              </div>
-              <div className="routine-stat">
-                <span className="routine-lbl">CALORIE BURN</span>
-                <strong>{todaysRoutine.caloriesEst}</strong>
-              </div>
-              <div className="routine-stat">
-                <span className="routine-lbl">ANATOMY SCAN</span>
+              <div className="header-btn-row">
                 <button
-                  className="mini-scan-btn"
-                  onClick={() => navigate("/anatomy")}
+                  className="action-link-btn"
+                  onClick={() => navigate("/exercises")}
                 >
-                  Scan Muscle 🧬
+                  Browse Exercises →
+                </button>
+                <button
+                  className="action-link-btn"
+                  onClick={() => navigate("/ai-planner")}
+                >
+                  Open Gym Planner →
                 </button>
               </div>
             </div>
 
-            {/* INTERACTIVE EXERCISE CHECKLIST */}
-            <div className="exercise-checklist-header">
-              <h3>Target Exercises Routine</h3>
-              <span className="completed-counter">
-                {completedExercises.length} of {todaysRoutine.exercises.length} Complete
-              </span>
-            </div>
-
-            <div className="exercise-items-list">
-              {todaysRoutine.exercises.map((ex, idx) => {
-                const isDone = completedExercises.includes(ex.name);
-                return (
-                  <div
-                    key={idx}
-                    className={`exercise-row-item ${isDone ? "completed" : ""}`}
-                    onClick={() => toggleExercise(ex.name)}
-                  >
-                    <div className="exercise-check-box">
-                      <span className="check-mark">{isDone ? "✓" : ""}</span>
-                    </div>
-
-                    <div className="exercise-icon-wrap">{ex.icon}</div>
-
-                    <div className="exercise-info-col">
-                      <h4 className="exercise-title">{ex.name}</h4>
-                      <span className="exercise-meta">
-                        {ex.sets} • {ex.reps} • <em>{ex.target}</em>
-                      </span>
-                    </div>
-
-                    <div className="exercise-status-badge">
-                      {isDone ? "COMPLETED" : "START"}
-                    </div>
+            {/* IF NO WORKOUT PLAN GENERATED YET: CLEAR EMPTY STATE */}
+            {!plannerData ? (
+              <div className="dash-empty-state">
+                <div className="empty-icon">🏋️‍♂️</div>
+                <h3>You haven't created a workout plan yet.</h3>
+                <p>
+                  Create your workout plan to see your daily exercise routines, sets, reps, and completion tracking right here on your Dashboard.
+                </p>
+                <button
+                  className="primary-action-btn"
+                  onClick={() => navigate("/ai-planner")}
+                >
+                  Create Workout Plan →
+                </button>
+              </div>
+            ) : isRestDay ? (
+              /* REST DAY CARD */
+              <div className="rest-day-card">
+                <div className="rest-day-icon">🧘‍♂️</div>
+                <div className="rest-day-info">
+                  <h3>Today is a Scheduled Rest Day</h3>
+                  <p>
+                    Rest and recovery are vital for muscle protein synthesis and injury prevention. Focus on adequate hydration, mobility, and hitting your diet targets today.
+                  </p>
+                </div>
+                <button
+                  className="secondary-action-btn"
+                  onClick={() => navigate("/exercises")}
+                >
+                  Explore Light Stretching Guides →
+                </button>
+              </div>
+            ) : (
+              /* ACTIVE WORKOUT PROTOCOL */
+              <>
+                <div className="routine-overview-banner">
+                  <div className="routine-stat">
+                    <span className="routine-lbl">FOCUS / SPLIT</span>
+                    <strong>{todaysRoutine.focus}</strong>
                   </div>
-                );
-              })}
-            </div>
+                  <div className="routine-stat">
+                    <span className="routine-lbl">SESSION TIME</span>
+                    <strong>{plannerData.workoutDuration || "60-75 Minutes"}</strong>
+                  </div>
+                  <div className="routine-stat">
+                    <span className="routine-lbl">REST BETWEEN SETS</span>
+                    <strong>{plannerData.restBetweenSets || "60-90 Seconds"}</strong>
+                  </div>
+                  <div className="routine-stat">
+                    <span className="routine-lbl">ANATOMY SCAN</span>
+                    <button
+                      className="mini-scan-btn"
+                      onClick={() => navigate("/anatomy")}
+                    >
+                      Scan Muscle 🧬
+                    </button>
+                  </div>
+                </div>
 
-            <div className="workout-actions-footer">
-              <button
-                className={`full-workout-btn ${workoutDone ? "done" : ""}`}
-                onClick={() => {
-                  const newDone = !workoutDone;
-                  setWorkoutDone(newDone);
-                  if (newDone) {
-                    setCompletedExercises(todaysRoutine.exercises.map((e) => e.name));
-                  } else {
-                    setCompletedExercises([]);
-                  }
-                  saveTrackers(undefined, newDone, newDone ? todaysRoutine.exercises.map((e) => e.name) : [], undefined);
-                }}
-              >
-                {workoutDone ? "✓ Workout Completed for Today!" : "Mark Entire Session as Completed"}
-              </button>
-            </div>
+                {/* INTERACTIVE EXERCISE CHECKLIST */}
+                <div className="exercise-checklist-header">
+                  <h3>Planned Exercises ({totalExercises})</h3>
+                  <span className="completed-counter">
+                    {completedExercisesCount} of {totalExercises} Completed
+                  </span>
+                </div>
+
+                <div className="exercise-items-list">
+                  {plannedExercises.map((ex, idx) => {
+                    const isDone = completedExercises.includes(ex.name);
+                    const exerciseSlug = ex.slug || slugify(ex.name);
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`exercise-row-item ${isDone ? "completed" : "pending"}`}
+                      >
+                        {/* Status Checkbox Button */}
+                        <button
+                          type="button"
+                          className="exercise-check-box"
+                          onClick={() => handleToggleExercise(ex.name)}
+                          disabled={updatingItem === ex.name}
+                          aria-label={`Mark ${ex.name} as ${isDone ? "pending" : "completed"}`}
+                        >
+                          {isDone ? <span className="check-mark">✓</span> : null}
+                        </button>
+
+                        <div className="exercise-icon-wrap">🏋️</div>
+
+                        <div className="exercise-info-col">
+                          <div className="exercise-title-row">
+                            <h4 className="exercise-title">{ex.name}</h4>
+                            <span
+                              className={`status-pill ${
+                                isDone ? "status-completed" : "status-pending"
+                              }`}
+                            >
+                              {isDone ? "✓ Completed" : "⏳ Pending"}
+                            </span>
+                          </div>
+
+                          <div className="exercise-meta">
+                            <strong>{ex.sets} sets</strong> × <strong>{ex.reps} reps</strong>
+                            {ex.target && (
+                              <span> • <em>Target: {ex.target}</em></span>
+                            )}
+                          </div>
+
+                          {/* Exercise Detail Link */}
+                          <div className="exercise-guide-link">
+                            <Link
+                              to={`/exercises/${exerciseSlug}`}
+                              className="link-inline-btn"
+                            >
+                              View Exercise Guide & Video →
+                            </Link>
+                          </div>
+                        </div>
+
+                        {/* Interactive Status Toggle Action */}
+                        <button
+                          type="button"
+                          className={`exercise-action-btn ${isDone ? "btn-undo" : "btn-complete"}`}
+                          onClick={() => handleToggleExercise(ex.name)}
+                          disabled={updatingItem === ex.name}
+                        >
+                          {updatingItem === ex.name
+                            ? "..."
+                            : isDone
+                            ? "Undo"
+                            : "Mark Done"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Workout Session Actions Footer */}
+                <div className="workout-actions-footer">
+                  <button
+                    className={`full-workout-btn ${allExercisesCompleted ? "done" : ""}`}
+                    onClick={handleToggleEntireWorkout}
+                    disabled={updatingItem === "all_exercises"}
+                  >
+                    {updatingItem === "all_exercises"
+                      ? "Updating Routine..."
+                      : allExercisesCompleted
+                      ? "✓ All Exercises Completed! (Click to Mark Pending)"
+                      : "Mark Entire Session as Completed"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 
-        {/* RIGHT COLUMN: NUTRITION & MACROS (CONNECTED TO DIET) */}
+        {/* RIGHT COLUMN: FULL SAVED DIET PLAN (MD SECTION 3, 4, 10) */}
         {(activeTab === "overview" || activeTab === "nutrition") && (
           <div className="dash-card nutrition-focus-panel">
             <div className="card-top-bar">
               <div>
                 <span className="tag-pill tag-coral">DAILY NUTRITION PROTOCOL</span>
-                <h2>🍽 Macro Distribution</h2>
+                <h2>🍽 Full Saved Diet Plan</h2>
               </div>
-              <button className="action-link-btn" onClick={() => navigate("/diet")}>
+              <button
+                className="action-link-btn"
+                onClick={() => navigate("/diet")}
+              >
                 Open Diet Planner →
               </button>
             </div>
 
-            {/* MACRONUTRIENT BARS */}
-            <div className="macro-breakdown-box">
-              <div className="macro-bar-row">
-                <div className="macro-header-row">
-                  <span className="macro-name">🍗 Protein (Growth & Repair)</span>
-                  <strong className="macro-val">{proteinGoal}g ({proteinPct}%)</strong>
-                </div>
-                <div className="macro-track">
-                  <div className="macro-fill fill-protein" style={{ width: `${proteinPct}%` }}></div>
-                </div>
+            {/* IF NO DIET PLAN GENERATED YET: CLEAR EMPTY STATE */}
+            {!dietPlanData ? (
+              <div className="dash-empty-state">
+                <div className="empty-icon">🥗</div>
+                <h3>You haven't created a diet plan yet.</h3>
+                <p>
+                  Create your diet plan to see all daily meals, food items, macro targets, and completion tracking right on your Dashboard.
+                </p>
+                <button
+                  className="primary-action-btn"
+                  onClick={() => navigate("/diet")}
+                >
+                  Create Diet Plan →
+                </button>
               </div>
+            ) : (
+              <>
+                {/* MACRONUTRIENT DISTRIBUTION BARS */}
+                <div className="macro-breakdown-box">
+                  <div className="macro-breakdown-header">
+                    <h4>Daily Target Budget: {calorieGoal.toLocaleString()} kcal</h4>
+                    <span>{dietPlanData.planName}</span>
+                  </div>
 
-              <div className="macro-bar-row">
-                <div className="macro-header-row">
-                  <span className="macro-name">🍚 Carbohydrates (Fuel & Energy)</span>
-                  <strong className="macro-val">{carbsGoal}g ({carbsPct}%)</strong>
-                </div>
-                <div className="macro-track">
-                  <div className="macro-fill fill-carbs" style={{ width: `${carbsPct}%` }}></div>
-                </div>
-              </div>
-
-              <div className="macro-bar-row">
-                <div className="macro-header-row">
-                  <span className="macro-name">🥑 Healthy Fats (Hormone Balance)</span>
-                  <strong className="macro-val">{fatsGoal}g ({fatsPct}%)</strong>
-                </div>
-                <div className="macro-track">
-                  <div className="macro-fill fill-fats" style={{ width: `${fatsPct}%` }}></div>
-                </div>
-              </div>
-            </div>
-
-            {/* MEALS CHECKLIST */}
-            <div className="meals-section-header">
-              <h3>Today's Meal Timeline</h3>
-              <span className="completed-counter">
-                {completedMeals.length} of {mealsList.length} Logged
-              </span>
-            </div>
-
-            <div className="meals-list-grid">
-              {mealsList.map((meal, idx) => {
-                const mealKey = meal.id || meal.type || `meal_${idx}`;
-                const isEaten = completedMeals.includes(mealKey) || completedMeals.includes(meal.type);
-                return (
-                  <div
-                    key={mealKey}
-                    className={`meal-card-item ${isEaten ? "eaten" : ""}`}
-                    onClick={() => toggleMeal(mealKey)}
-                  >
-                    <div className="meal-card-top">
-                      <span className="meal-type-pill">{meal.type}</span>
-                      <span className="meal-check-indicator">{isEaten ? "✓ Eaten" : "+ Log"}</span>
+                  <div className="macro-bar-row">
+                    <div className="macro-header-row">
+                      <span className="macro-name">🍗 Protein (Repair & Growth)</span>
+                      <strong className="macro-val">
+                        {proteinGoal}g ({proteinPct}%)
+                      </strong>
                     </div>
-                    <h4 className="meal-name-txt">{meal.name}</h4>
-                    <div className="meal-macros-chips">
-                      <span>🔥 {meal.calories} kcal</span>
-                      <span>🥩 {meal.protein}g P</span>
-                      <span>🍚 {meal.carbs}g C</span>
-                      <span>🥑 {meal.fats}g F</span>
+                    <div className="macro-track">
+                      <div
+                        className="macro-fill fill-protein"
+                        style={{ width: `${proteinPct}%` }}
+                      ></div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+
+                  <div className="macro-bar-row">
+                    <div className="macro-header-row">
+                      <span className="macro-name">🍚 Carbohydrates (Energy & Fuel)</span>
+                      <strong className="macro-val">
+                        {carbsGoal}g ({carbsPct}%)
+                      </strong>
+                    </div>
+                    <div className="macro-track">
+                      <div
+                        className="macro-fill fill-carbs"
+                        style={{ width: `${carbsPct}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  <div className="macro-bar-row">
+                    <div className="macro-header-row">
+                      <span className="macro-name">🥑 Healthy Fats (Hormone Health)</span>
+                      <strong className="macro-val">
+                        {fatsGoal}g ({fatsPct}%)
+                      </strong>
+                    </div>
+                    <div className="macro-track">
+                      <div
+                        className="macro-fill fill-fats"
+                        style={{ width: `${fatsPct}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* MEALS CHECKLIST (FULL SAVED DIET PLAN WITH ALL FOODS & PORTIONS) */}
+                <div className="meals-section-header">
+                  <h3>All Scheduled Meals ({totalMeals})</h3>
+                  <span className="completed-counter">
+                    {completedMealsCount} of {totalMeals} Completed
+                  </span>
+                </div>
+
+                <div className="meals-full-list">
+                  {plannedMeals.map((meal, idx) => {
+                    const mealIdentifier = getMealIdentifier(meal, idx);
+                    const isEaten = completedMeals.includes(mealIdentifier);
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`meal-card-item ${isEaten ? "completed" : "pending"}`}
+                      >
+                        {/* Meal Header & Status Controls */}
+                        <div className="meal-card-top">
+                          <div className="meal-title-group">
+                            <span className="meal-type-pill">
+                              {meal.mealName || meal.mealType}
+                            </span>
+                            {meal.recommendedTime && (
+                              <span className="meal-time-tag">
+                                ⏰ {meal.recommendedTime}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="meal-status-wrap">
+                            <span
+                              className={`status-pill ${
+                                isEaten ? "status-completed" : "status-pending"
+                              }`}
+                            >
+                              {isEaten ? "✓ Completed" : "⏳ Pending"}
+                            </span>
+                            <button
+                              type="button"
+                              className={`meal-toggle-btn ${
+                                isEaten ? "btn-undo" : "btn-complete"
+                              }`}
+                              onClick={() => handleToggleMeal(mealIdentifier)}
+                              disabled={updatingItem === mealIdentifier}
+                              aria-label={`Mark ${mealIdentifier} as ${
+                                isEaten ? "pending" : "completed"
+                              }`}
+                            >
+                              {updatingItem === mealIdentifier
+                                ? "..."
+                                : isEaten
+                                ? "Undo"
+                                : "Mark Completed"}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Meal Nutrition Summary */}
+                        <div className="meal-macros-chips">
+                          <span>🔥 {Math.round(meal.totalCalories || 0)} kcal</span>
+                          <span>🥩 {Math.round(meal.totalProtein || 0)}g P</span>
+                          <span>🍚 {Math.round(meal.totalCarbs || 0)}g C</span>
+                          <span>🥑 {Math.round(meal.totalFats || 0)}g F</span>
+                        </div>
+
+                        {/* FULL FOOD ITEMS LIST INSIDE THIS MEAL */}
+                        {meal.foods && meal.foods.length > 0 && (
+                          <div className="meal-foods-box">
+                            <div className="foods-box-heading">Food Items & Portions:</div>
+                            <div className="foods-chips-grid">
+                              {meal.foods.map((food, fIdx) => (
+                                <div key={fIdx} className="food-item-badge">
+                                  <span className="food-item-icon">
+                                    {food.icon || "🥗"}
+                                  </span>
+                                  <div className="food-item-info">
+                                    <strong>{food.name}</strong>
+                                    <span>
+                                      {food.portion ||
+                                        (food.quantity
+                                          ? `${food.quantity} ${food.unit || "g"}`
+                                          : "")}
+                                      {food.calories
+                                        ? ` • ${Math.round(food.calories)} kcal`
+                                        : ""}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         )}
 
       </div>
 
-      {/* 5. BOTTOM ROW: WATER TRACKER & AI INTELLIGENCE */}
+      {/* 7. BOTTOM ROW: HYDRATION STATION & AI DIRECTIVE */}
       <div className="dashboard-bottom-grid">
         
         {/* HYDRATION WIDGET */}
@@ -609,11 +1014,16 @@ function Dashboard() {
               <span className="tag-pill tag-cyan">WATER INTAKE</span>
               <h3>💧 Hydration Station</h3>
             </div>
-            <span className="liters-counter">{waterConsumedLiters} / {waterTargetLiters} L</span>
+            <span className="liters-counter">
+              {waterConsumedLiters} / {waterTargetLiters} L
+            </span>
           </div>
 
           <div className="water-wave-container">
-            <div className="water-level-fill" style={{ height: `${Math.max(waterPercent, 8)}%` }}></div>
+            <div
+              className="water-level-fill"
+              style={{ height: `${Math.max(waterPercent, 8)}%` }}
+            ></div>
             <div className="water-center-label">
               <strong>{waterPercent}%</strong>
               <span>Target Met</span>
@@ -621,17 +1031,26 @@ function Dashboard() {
           </div>
 
           <div className="water-controls">
-            <button className="water-btn sub-btn" onClick={handleWaterSub} disabled={waterGlasses === 0}>
+            <button
+              className="water-btn sub-btn"
+              onClick={() => handleWaterChange(-1)}
+              disabled={waterGlasses === 0}
+              aria-label="Subtract one glass of water"
+            >
               - 250ml
             </button>
             <span className="glasses-count">{waterGlasses} Glasses</span>
-            <button className="water-btn add-btn" onClick={handleWaterAdd}>
+            <button
+              className="water-btn add-btn"
+              onClick={() => handleWaterChange(1)}
+              aria-label="Add one glass of water"
+            >
               + 250ml Glass
             </button>
           </div>
         </div>
 
-        {/* AI FITNESS COACH ADVISOR */}
+        {/* AI FITNESS COACH DIRECTIVE */}
         <div className="dash-card ai-advisor-widget">
           <div className="ai-coach-top">
             <div className="coach-avatar">🤖</div>
@@ -642,9 +1061,13 @@ function Dashboard() {
           </div>
 
           <p className="ai-directive-text">
-            For <strong>{dayName}</strong>, your primary mechanical focus is <strong>{todaysRoutine.title}</strong>. 
-            Aim to maintain progressive overload on your compound lifts while hitting your <strong>{proteinGoal}g protein</strong> target. 
-            Stay consistent with hydration to optimize muscle glycogen synthesis.
+            For <strong>{dayName}</strong>, your scheduled focus is{" "}
+            <strong>{todaysWorkoutTitle}</strong>.{" "}
+            {isRestDay
+              ? "Focus today on resting muscle tissue, light mobility, and staying on track with your meals."
+              : `Execute your planned ${totalExercises} exercises with progressive overload and mindful form.`}{" "}
+            Aim to hit your <strong>{proteinGoal > 0 ? `${proteinGoal}g protein` : "daily protein"}</strong>{" "}
+            and maintain hydration to fuel optimal recovery.
           </p>
 
           <div className="coach-quick-links">
@@ -652,10 +1075,10 @@ function Dashboard() {
               🧬 Inspect Muscle Mechanics
             </button>
             <button className="coach-link" onClick={() => navigate("/ai-planner")}>
-              📋 Re-generate Routine
+              📋 Adjust Gym Routine
             </button>
-            <button className="coach-link" onClick={() => navigate("/bmi")}>
-              ⚖️ Check Body Composition
+            <button className="coach-link" onClick={() => navigate("/diet")}>
+              🥗 Adjust Diet Plan
             </button>
           </div>
         </div>

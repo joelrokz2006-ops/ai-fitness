@@ -26,6 +26,11 @@ const DietPlanCard = ({ planData }) => {
             <span className={`diet-pref-pill ${isVeg ? "veg" : "non-veg"}`}>
               {isVeg ? "🌱 100% Vegetarian" : "🍗 Non-Vegetarian"}
             </span>
+            {(dietPlan?.userDetails?.bmi || calculation?.bmi) && (
+              <span className="diet-badge-pill" style={{ background: "rgba(0, 240, 255, 0.15)", color: "#00f0ff", borderColor: "rgba(0, 240, 255, 0.4)" }}>
+                📊 BMI: {dietPlan?.userDetails?.bmi || calculation?.bmi} ({dietPlan?.userDetails?.bmiCategory || calculation?.bmiCategory || "Normal"})
+              </span>
+            )}
           </div>
           <h2>{dietPlan?.planName || "Personalized Fitness Nutrition"}</h2>
           <p>Calculated metabolic and macronutrient distribution tailored to your body metrics.</p>

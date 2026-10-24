@@ -350,6 +350,202 @@
   white-space: nowrap;
 }
 
+/* ============================= */
+/* WORKOUT EXERCISE CARDS & VIDEO */
+/* ============================= */
+
+.planner-exercises-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.planner-exercise-card {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.planner-exercise-card:hover {
+  border-color: rgba(0, 240, 255, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 240, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.planner-exercise-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.planner-exercise-title {
+  margin: 0;
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.05rem;
+  color: #f8fafc;
+  letter-spacing: 0.5px;
+}
+
+.planner-exercise-muscle {
+  font-size: 0.75rem;
+  color: #38bdf8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.planner-exercise-badge {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #93c5fd;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.planner-exercise-cue {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.watch-exercise-btn {
+  align-self: flex-start;
+  margin-top: 4px;
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.15) 0%, rgba(37, 99, 235, 0.2) 100%);
+  border: 1px solid rgba(0, 240, 255, 0.5);
+  color: #00f0ff;
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.watch-exercise-btn:hover {
+  background: #00f0ff;
+  color: #0b0f19;
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+.planner-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.open-exercise-detail-btn {
+  background: linear-gradient(135deg, #00f0ff, #0072ff);
+  border: none;
+  color: #060b18;
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.open-exercise-detail-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.6);
+}
+
+.planner-muscle-group-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.planner-muscle-link-btn {
+  background: rgba(0, 240, 255, 0.1);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  color: #00f0ff;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.planner-muscle-link-btn:hover {
+  background: rgba(0, 240, 255, 0.25);
+  border-color: #00f0ff;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.workout-plan-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.workout-row-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mini-muscle-tag {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mini-muscle-tag:hover {
+  background: #38bdf8;
+  color: #060b18;
+}
+
+.open-detail-arrow {
+  color: #00f0ff;
+  font-size: 0.9em;
+  opacity: 0.8;
+  margin-left: 4px;
+}
+
 .missing-note {
   background: #0f172a;
 
@@ -362,6 +558,16 @@
   border-radius: 10px;
 
   font-size: 0.92rem;
+}
+
+.planner-rest-day-box {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px dashed rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  padding: 14px 18px;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  margin-top: 10px;
 }
 
 /* ============================= */

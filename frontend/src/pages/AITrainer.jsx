@@ -1,50 +1,51 @@
 import React, { useState } from 'react';
-import { GoogleGenAI } from '@google/genai';
-import ReactMarkdown from 'react-markdown'; // <-- ReactMarkdown இறக்குமதி செய்யப்பட்டுள்ளது
-import './AITrainer.css'; // <-- Import file CSS di sini
-
-// Initialize Gemini API from environment variable
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+import ReactMarkdown from 'react-markdown';
+import './AITrainer.css';
 
 function AITrainer() {
   const [messages, setMessages] = useState([
-    { role: 'model', text: 'Hello! Naan thaan unga AI Fitness Coach. Enna kelvi venum naalum kelunga!' }
+    { role: 'model', text: 'Hello! I am your AI Fitness & Nutrition Coach. Ask me anything about workouts, diet, macros, or BMI!' }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || loading) return;
 
     const userMessage = { role: 'user', text: input };
     setMessages((prev) => [...prev, userMessage]);
+    const messageToSend = input;
     setInput('');
-    if (!ai) {
-      setMessages((prev) => [
-        ...prev,
-        { role: 'model', text: 'Please configure VITE_GEMINI_API_KEY in your .env file to enable the AI coach.' }
-      ]);
-      setLoading(false);
-      return;
-    }
+    setLoading(true);
 
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: input,
-        config: {
-          systemInstruction: "You are an elite AI Fitness Trainer. Only answer fitness, diet, and workout related questions. Keep it friendly.",
-          temperature: 0.7,
-        }
+      // Secure backend proxy call - no secret API keys exposed in the browser
+      const res = await fetch('/api/ai/coach', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: messageToSend }),
       });
 
-      const aiMessage = { role: 'model', text: response.text };
-      setMessages((prev) => [...prev, aiMessage]);
+      const data = await res.json();
+
+      if (res.ok && data.reply) {
+        const aiMessage = { role: 'model', text: data.reply };
+        setMessages((prev) => [...prev, aiMessage]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          { role: 'model', text: data.message || 'Sorry, I am temporarily unable to answer. Please try again in a moment.' }
+        ]);
+      }
     } catch (error) {
-      console.error("Gemini Error:", error);
-      setMessages((prev) => [...prev, { role: 'model', text: 'Sorry, temporary-ah connect panna mudiyala!' }]);
+      console.error("AI Coach Error:", error);
+      setMessages((prev) => [
+        ...prev,
+        { role: 'model', text: 'Sorry, unable to connect to the AI Fitness service right now. Please check your network connection.' }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -58,7 +59,6 @@ function AITrainer() {
         {messages.map((msg, index) => (
           <div key={index} className={`message-wrapper ${msg.role}`}>
             <span className="message-bubble">
-              {/* ReactMarkdown-ஐ இங்கு பயன்படுத்தியுள்ளேன். இது வரிகளைத் தனித்தனியாகப் பிரித்துக் காட்டும் */}
               <ReactMarkdown>{msg.text}</ReactMarkdown>
             </span>
           </div>
@@ -71,8 +71,9 @@ function AITrainer() {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask me anything about diet or exercises..."
+          placeholder="Ask me anything about diet, BMI, or workouts..."
           className="chat-input"
+          disabled={loading}
         />
         <button type="submit" disabled={loading} className="chat-button">
           Send

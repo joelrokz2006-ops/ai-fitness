@@ -37,20 +37,12 @@ const verifyToken = (req, res, next) => {
       });
     }
 
-    // Check JWT secret
-    if (!process.env.JWT_SECRET) {
-      console.error("❌ JWT_SECRET is missing in .env");
-
-      return res.status(500).json({
-        success: false,
-        message: "JWT configuration error",
-      });
-    }
+    const secret = process.env.JWT_SECRET || "ai_fitness_secret";
 
     // Verify token
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET
+      secret
     );
 
     console.log("✅ Token verified");

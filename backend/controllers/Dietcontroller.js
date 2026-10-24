@@ -2,6 +2,11 @@ const DietPlan = require("../models/DietPlan");
 const calculateCalories = require("../services/calorieCalculator");
 const generateDietPlan = require("../services/dietGenerator");
 const { formatGoal } = require("../utils/helpers");
+const {
+  calculateBMI,
+  getBMICategory,
+  getBMIDietStrategy,
+} = require("../utils/bmi");
 
 // ========================================
 // GENERATE PERSONALIZED DIET PLAN
@@ -10,7 +15,6 @@ const { formatGoal } = require("../utils/helpers");
 const generatePlan = async (req, res) => {
   try {
     const {
-      age,
       gender,
       weight,
       height,
@@ -20,11 +24,10 @@ const generatePlan = async (req, res) => {
     } = req.body;
 
     // =========================
-    // VALIDATION
+    // VALIDATION (AGE IS NOT USED IN DIET)
     // =========================
 
     if (
-      !age ||
       !gender ||
       !weight ||
       !height ||
@@ -34,21 +37,40 @@ const generatePlan = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Please provide all required details",
+        message:
+          "Please provide all required details (gender, weight, height, activityLevel, goal, foodPreference)",
+      });
+    }
+
+    const numWeight = Number(weight);
+    const numHeight = Number(height);
+
+    if (isNaN(numWeight) || numWeight <= 0 || isNaN(numHeight) || numHeight <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide valid positive numbers for height and weight.",
       });
     }
 
     // =========================
-    // CALCULATE CALORIES & MACROS
+    // CALCULATE BMI & CATEGORY
+    // =========================
+
+    const bmi = calculateBMI(numHeight, numWeight);
+    const bmiCategory = getBMICategory(bmi);
+    const bmiStrategy = getBMIDietStrategy(bmiCategory);
+
+    // =========================
+    // CALCULATE CALORIES & MACROS (BMI-DRIVEN, AGE-FREE)
     // =========================
 
     const calculation = calculateCalories({
-      age,
       gender,
-      weight,
-      height,
+      weight: numWeight,
+      height: numHeight,
       activityLevel,
       goal,
+      bmi,
     });
 
     // =========================
@@ -65,44 +87,42 @@ const generatePlan = async (req, res) => {
         fats: calculation.fats,
       },
     });
+
     // =========================
-// CALCULATE GENERATED TOTALS
-// =========================
+    // CALCULATE GENERATED TOTALS
+    // =========================
 
-const generatedTotals = meals.reduce(
-  (total, meal) => {
-    total.calories += meal.totalCalories;
-    total.protein += meal.totalProtein;
-    total.carbs += meal.totalCarbs;
-    total.fats += meal.totalFats;
+    const generatedTotals = meals.reduce(
+      (total, meal) => {
+        total.calories += meal.totalCalories || 0;
+        total.protein += meal.totalProtein || 0;
+        total.carbs += meal.totalCarbs || 0;
+        total.fats += meal.totalFats || 0;
 
-    return total;
-  },
-  {
-    calories: 0,
-    protein: 0,
-    carbs: 0,
-    fats: 0,
-  }
-);
+        return total;
+      },
+      {
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fats: 0,
+      }
+    );
 
-generatedTotals.protein = Number(
-  generatedTotals.protein.toFixed(1)
-);
-
-generatedTotals.carbs = Number(
-  generatedTotals.carbs.toFixed(1)
-);
-
-generatedTotals.fats = Number(
-  generatedTotals.fats.toFixed(1)
-);
+    generatedTotals.calories = Math.round(generatedTotals.calories);
+    generatedTotals.protein = Number(generatedTotals.protein.toFixed(1));
+    generatedTotals.carbs = Number(generatedTotals.carbs.toFixed(1));
+    generatedTotals.fats = Number(generatedTotals.fats.toFixed(1));
 
     // =========================
     // CREATE DIET PLAN
     // =========================
 
     const userId = req.user?.id || req.user?._id;
+
+    // Archive any previous active diet plan so only the newest plan remains active
+    await DietPlan.updateMany({ user: userId, status: "active" }, { status: "archived" });
+
     const dietPlan = await DietPlan.create({
       user: userId,
 
@@ -112,12 +132,16 @@ generatedTotals.fats = Number(
 
       foodPreference,
 
+      status: "active",
+
       userDetails: {
-        age,
         gender,
-        weight,
-        height,
+        weight: numWeight,
+        height: numHeight,
         activityLevel,
+        bmi,
+        bmiCategory,
+        bmiStrategy: bmiStrategy.strategy,
       },
 
       dailyTargets: {
@@ -130,9 +154,11 @@ generatedTotals.fats = Number(
       meals,
 
       recommendations: [
-        "Drink enough water throughout the day",
-        "Follow the meal portions consistently",
-        "Track your progress every week",
+        `BMI: ${bmi} (${bmiCategory}) — Strategy: ${bmiStrategy.strategy}`,
+        bmiStrategy.description,
+        ...(bmiStrategy.recommendations || []),
+        "Drink 3-4 liters of water daily to support hydration and metabolic efficiency.",
+        "Fitness-oriented recommendation. If you have any medical condition, please consult a qualified healthcare professional.",
       ],
 
       generatedBy: "system",
@@ -146,21 +172,28 @@ generatedTotals.fats = Number(
       success: true,
       message: "Personalized diet plan generated successfully",
 
-  targets: {
-    calories: calculation.calories,
-    protein: calculation.protein,
-    carbs: calculation.carbs,
-    fats: calculation.fats,
-  },
+      bmi,
+      bmiCategory,
+      bmiStrategy: bmiStrategy.strategy,
 
-  generatedTotals,
+      targets: {
+        calories: calculation.calories,
+        protein: calculation.protein,
+        carbs: calculation.carbs,
+        fats: calculation.fats,
+      },
 
-  calculation: {
-    bmr: calculation.bmr,
-  },
+      generatedTotals,
 
-  dietPlan,
-});
+      calculation: {
+        bmr: calculation.bmr,
+        bmi,
+        bmiCategory,
+        bmiStrategy: bmiStrategy.strategy,
+      },
+
+      dietPlan,
+    });
   } catch (error) {
     console.error("Diet Plan Error:", error);
 
@@ -171,6 +204,7 @@ generatedTotals.fats = Number(
     });
   }
 };
+
 // ========================================
 // GET LATEST SAVED DIET PLAN
 // ========================================
@@ -178,11 +212,20 @@ generatedTotals.fats = Number(
 const getMyPlan = async (req, res) => {
   try {
     const userId = req.user?.id || req.user?._id;
-    const dietPlan = await DietPlan.findOne({
+    let dietPlan = await DietPlan.findOne({
       user: userId,
+      status: "active",
     })
-  .sort({ createdAt: -1 })
-  .populate("meals.foods.food");
+      .sort({ createdAt: -1 })
+      .populate("meals.foods.food");
+
+    if (!dietPlan) {
+      dietPlan = await DietPlan.findOne({
+        user: userId,
+      })
+        .sort({ createdAt: -1 })
+        .populate("meals.foods.food");
+    }
 
     if (!dietPlan) {
       return res.status(404).json({
@@ -191,9 +234,23 @@ const getMyPlan = async (req, res) => {
       });
     }
 
+    // Ensure BMI and category are calculated if missing
+    let bmi = dietPlan.userDetails?.bmi;
+    let bmiCategory = dietPlan.userDetails?.bmiCategory;
+
+    if (!bmi && dietPlan.userDetails?.height && dietPlan.userDetails?.weight) {
+      bmi = calculateBMI(
+        dietPlan.userDetails.height,
+        dietPlan.userDetails.weight
+      );
+      bmiCategory = getBMICategory(bmi);
+    }
+
     res.status(200).json({
       success: true,
       message: "Diet plan retrieved successfully",
+      bmi,
+      bmiCategory,
       dietPlan,
     });
   } catch (error) {
@@ -209,5 +266,5 @@ const getMyPlan = async (req, res) => {
 
 module.exports = {
   generatePlan,
-   getMyPlan,
+  getMyPlan,
 };

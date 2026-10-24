@@ -7,7 +7,7 @@ const plannerSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false,
     },
 
     age: {
@@ -113,45 +113,20 @@ const plannerSchema = new mongoose.Schema(
         exercises: [
           {
             name: String,
-            sets: String,
+            sets: mongoose.Schema.Types.Mixed,
             reps: String,
+            muscle: String,
+            target: String,
+            instructions: String,
+            description: String,
+            video: String,
+            videoUrl: String,
+            slug: String,
           },
         ],
       },
     ],
 
-    // ================= Clear Diet Routine =================
-
-    dietRoutine: {
-      dailyTargets: {
-        calories: Number,
-        protein: Number,
-        carbs: Number,
-        fats: Number,
-        bmr: Number,
-        water: String,
-      },
-
-      mealSplit: {
-        protein: Number,
-        carbs: Number,
-        fats: Number,
-      },
-
-      meals: [
-        {
-          name: String,
-          time: String,
-          items: [String],
-          calories: Number,
-          protein: Number,
-          carbs: Number,
-          fats: Number,
-        },
-      ],
-
-      rules: [String],
-    },
 
     // ================= Goal Guide =================
 

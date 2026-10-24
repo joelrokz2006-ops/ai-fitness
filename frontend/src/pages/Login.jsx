@@ -14,6 +14,7 @@ const Login = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [gender, setGender] = useState("Male");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -27,6 +28,7 @@ const Login = () => {
     setName("");
     setEmail("");
     setPassword("");
+    setGender("Male");
   };
 
   // =====================================================
@@ -96,6 +98,7 @@ const Login = () => {
           name: cleanName,
           email: cleanEmail,
           password: password,
+          gender: gender,
           role: "user",
         }),
       });
@@ -462,27 +465,52 @@ const Login = () => {
           ================================================= */}
 
           {isRegister && (
-            <div
-              style={{
-                marginBottom: "20px",
-              }}
-            >
+            <>
+              <div
+                style={{
+                  marginBottom: "20px",
+                }}
+              >
+                <label>Name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) =>
+                    setName(e.target.value)
+                  }
+                  placeholder="Your name"
+                  autoComplete="name"
+                  disabled={loading}
+                  required
+                />
+              </div>
 
-              <label>Name</label>
-
-              <input
-                type="text"
-                value={name}
-                onChange={(e) =>
-                  setName(e.target.value)
-                }
-                placeholder="Your name"
-                autoComplete="name"
-                disabled={loading}
-                required
-              />
-
-            </div>
+              <div
+                style={{
+                  marginBottom: "20px",
+                }}
+              >
+                <label>Gender</label>
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  disabled={loading}
+                  style={{
+                    width: "100%",
+                    padding: "12px",
+                    background: "#111827",
+                    border: "1px solid #374151",
+                    borderRadius: "8px",
+                    color: "#f3f4f6",
+                    fontSize: "14px",
+                  }}
+                >
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Transgender">Transgender</option>
+                </select>
+              </div>
+            </>
           )}
 
           {/* =================================================
